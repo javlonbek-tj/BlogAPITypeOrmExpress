@@ -1,7 +1,16 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  OneToOne,
+} from 'typeorm';
 import Model from './base.entity';
 import { Post } from './post.entity';
 import { Comment } from './comment.entity';
+import { Role } from './role.entity';
+import { Token } from './token.entity';
 
 export enum AwardEnumType {
   BRONZE = 'bronze',
@@ -17,37 +26,66 @@ export class User extends Model {
   @Column()
   lastname: string;
 
-  @Column()
+  @Column({ unique: true })
   email: string;
 
-  @Column()
-  profilPhoto: string;
+  @Column({ nullable: true })
+  profilPhoto?: string;
 
   @Column()
   password: string;
 
-  @Column()
+  @Column({ default: false })
   isBlocked: boolean;
+
+  @Column({ default: false })
+  isActivated: boolean;
+
+  @Column()
+  activationCode?: string;
+
+  @Column()
+  activationCodeExpires?: BigInt;
+
+  @Column()
+  passwordChangedAt?: Date;
+
+  @Column()
+  passwordResetToken?: string;
+
+  @Column()
+  passwordResetExpires?: BigInt;
+
+  @Column()
+  lastPostDate?: string;
+
+  @ManyToOne(() => Role, (role) => role.users)
+  @JoinColumn({ name: 'roleId' })
+  role: Role;
+
+  @OneToOne(() => Token, (token) => token.user, { nullable: true })
+  @JoinColumn({ name: 'tokenId' })
+  token: Token | null;
 
   @ManyToOne(() => User, (user) => user.viewers)
   @JoinColumn({ name: 'viewerId' })
   viewer: User;
 
-  @ManyToOne(() => User, (user) => user.viewer)
+  @OneToMany(() => User, (user) => user.viewer)
   viewers: User[];
 
   @ManyToOne(() => User, (user) => user.followers)
   @JoinColumn({ name: 'followerId' })
   follower: User;
 
-  @ManyToOne(() => User, (user) => user.follower)
+  @OneToMany(() => User, (user) => user.follower)
   followers: User[];
 
   @ManyToOne(() => User, (user) => user.followings)
   @JoinColumn({ name: 'followingId' })
   following: User;
 
-  @ManyToOne(() => User, (user) => user.following)
+  @OneToMany(() => User, (user) => user.following)
   followings: User[];
 
   @OneToMany(() => Post, (post) => post.user)
@@ -60,8 +98,9 @@ export class User extends Model {
   @JoinColumn({ name: 'blockingId' })
   blocking: User;
 
-  @ManyToOne(() => User, (user) => user.follower)
+  @OneToMany(() => User, (user) => user.blocking)
   blockings: User[];
 
-  userAward;
+  @Column({ type: 'enum', enum: AwardEnumType, default: AwardEnumType.BRONZE })
+  userAward: string;
 }
