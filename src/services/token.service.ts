@@ -1,7 +1,6 @@
 import 'dotenv/config';
 import jwt from 'jsonwebtoken';
 import config from 'config';
-import db from '../utils/db';
 
 type DecodedToken<T> = T & {
   iat: number;
@@ -16,9 +15,13 @@ const generateTokens = (payload: Payload) => {
   const accessToken = jwt.sign(payload, config.get<string>('accessTokenKey'), {
     expiresIn: config.get<string>('accessTokenExpiresIn'),
   });
-  const refreshToken = jwt.sign(payload, config.get<string>('refreshTokenKey'), {
-    expiresIn: config.get<string>('refreshTokenExpiresIn'),
-  });
+  const refreshToken = jwt.sign(
+    payload,
+    config.get<string>('refreshTokenKey'),
+    {
+      expiresIn: config.get<string>('refreshTokenExpiresIn'),
+    }
+  );
   return {
     accessToken,
     refreshToken,
@@ -26,12 +29,18 @@ const generateTokens = (payload: Payload) => {
 };
 
 const validateAccessToken = (token: string): DecodedToken<Payload> => {
-  const userData = jwt.verify(token, config.get<string>('accessTokenKey')) as DecodedToken<Payload>;
+  const userData = jwt.verify(
+    token,
+    config.get<string>('accessTokenKey')
+  ) as DecodedToken<Payload>;
   return userData;
 };
 
 const validateRefreshToken = (token: string): DecodedToken<Payload> => {
-  const userData = jwt.verify(token, config.get<string>('refreshTokenKey')) as DecodedToken<Payload>;
+  const userData = jwt.verify(
+    token,
+    config.get<string>('refreshTokenKey')
+  ) as DecodedToken<Payload>;
   return userData;
 };
 
@@ -69,4 +78,11 @@ const removeToken = async (refreshToken: string) => {
   return tokenData;
 };
 
-export { generateTokens, validateAccessToken, validateRefreshToken, saveToken, findToken, removeToken };
+export {
+  generateTokens,
+  validateAccessToken,
+  validateRefreshToken,
+  saveToken,
+  findToken,
+  removeToken,
+};
