@@ -10,15 +10,23 @@ import errorMiddleware from './middlewares/error.middleware';
 import api from './routes';
 import logger from './utils/logger';
 import validateEnv from './utils/validateEnv';
+import passport from 'passport';
+import { strategy } from './services/auth.service';
+import connectDB from './data-source';
 
 const port: number = config.get<number>('port');
 
 async function start(): Promise<void> {
   try {
-    validateEnv();
+    /* validateEnv(); */
+    await connectDB();
     const app: Express = express();
 
     app.use('/uploads', express.static(path.resolve('uploads')));
+
+    passport.use(strategy);
+
+    passport.initialize();
 
     app.use(express.json());
     app.use(cookieParser());

@@ -7,7 +7,9 @@ export class Token extends Model {
   @Column()
   refreshToken: string;
 
+  @Column()
+  userId: string;
+
   @OneToOne(() => User, (user) => user.token)
-  @JoinColumn({ name: 'userId' })
   user: User;
 }

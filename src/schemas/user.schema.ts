@@ -1,11 +1,5 @@
 import { z } from 'zod';
 
-export enum RoleEnumType {
-  USER = 'USER',
-  ADMIN = 'ADMIN',
-  EDITOR = 'EDITOR',
-}
-
 export enum AwardEnumType {
   BRONZE = 'BRONZE',
   SILVER = 'SILVER',
@@ -34,7 +28,6 @@ export const createUserSchema = z.object({
           required_error: 'Email is required',
         })
         .email({ message: 'Invalid email' }),
-      profilPhoto: z.string().optional(),
       password: z
         .string({
           required_error: 'Password is required',
@@ -43,9 +36,8 @@ export const createUserSchema = z.object({
       passwordConfirm: z.string({
         required_error: 'passwordConfirm is required',
       }),
-      role: z.nativeEnum(RoleEnumType).default(RoleEnumType.USER),
     })
-    .refine(data => data.password === data.passwordConfirm, {
+    .refine((data) => data.password === data.passwordConfirm, {
       path: ['passwordConfirm'],
       message: 'Passwords do not match',
     }),
@@ -106,7 +98,7 @@ export const updatePasswordSchema = z.object({
         required_error: 'passwordConfirm is required',
       }),
     })
-    .refine(data => data.newPass === data.newPassConfirm, {
+    .refine((data) => data.newPass === data.newPassConfirm, {
       path: ['passwordConfirm'],
       message: 'Passwords do not match',
     }),
@@ -124,7 +116,7 @@ export const resetPasswordSchema = z.object({
         required_error: 'passwordConfirm is required',
       }),
     })
-    .refine(data => data.password === data.passwordCofirm, {
+    .refine((data) => data.password === data.passwordCofirm, {
       path: ['passwordConfirm'],
       message: 'Passwords do not match',
     }),
@@ -132,7 +124,10 @@ export const resetPasswordSchema = z.object({
 
 export const getUserSchema = z.object({ ...params });
 
-export type CreateUserInput = Omit<z.infer<typeof createUserSchema>['body'], 'passwordConfirm'>;
+export type CreateUserInput = Omit<
+  z.infer<typeof createUserSchema>['body'],
+  'passwordConfirm'
+>;
 
 export type LoginUserInput = z.infer<typeof loginUserSchema>['body'];
 

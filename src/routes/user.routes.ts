@@ -1,4 +1,8 @@
-import { getUserSchema, updatePasswordSchema, updateUserSchema } from './../schemas/user.schema';
+import {
+  getUserSchema,
+  updatePasswordSchema,
+  updateUserSchema,
+} from './../schemas/user.schema';
 import { Router } from 'express';
 import {
   adminBlockUserHandler,
@@ -15,12 +19,12 @@ import {
   updateUserInfoHandler,
   profileViewersHandler,
 } from '../controllers/user.controller';
-import { isAuth, restrictTo } from '../middlewares/isAuth.middleware';
+/* import { isAuth, restrictTo } from '../middlewares/isAuth.middleware'; */
 import { validate } from '../middlewares/validate';
-import { uploadMiddleware } from '../middlewares/fileUploadMiddleware';
+/* import { uploadMiddleware } from '../middlewares/fileUploadMiddleware'; */
 
 const userRoutes = Router();
-
+/* 
 userRoutes.get('/profile-viewers', isAuth, profileViewersHandler);
 
 userRoutes.get('/:userId', isAuth, oneUserHandler);
@@ -48,3 +52,4 @@ userRoutes.put('/reset-password/:resetToken', isAuth, resetPasswordHandler);
 userRoutes.delete('/delete-account', isAuth, deleteAccountHanlder);
 
 export default userRoutes;
+ */

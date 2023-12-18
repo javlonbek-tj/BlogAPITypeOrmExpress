@@ -1,90 +1,110 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { Strategy as JwtStrategy } from 'passport-jwt';
+import { ExtractJwt } from 'passport-jwt';
 import 'dotenv/config';
 import { CreateUserInput, LoginUserInput } from '../schemas/user.schema';
 import ApiError from '../utils/appError';
-import db from '../utils/db';
 import { sendActivationCode, sendMail } from './mail.service';
 import * as tokenService from './token.service';
 import { getUserSelectFields } from '../utils/getSelectedField';
+import { AppDataSource } from '../data-source';
+import { User } from '../entities/user.entity';
+import * as userService from './user.service';
+import { MoreThan, MoreThanOrEqual } from 'typeorm';
 
-const signup = async ({ firstname, lastname, email, password, role }: CreateUserInput) => {
-  const isUserExists = await db.user.findUnique({
-    where: { email },
+const userRepo = AppDataSource.getRepository(User);
+
+const options = {
+  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+  secretOrKey: 'secret',
+};
+
+const strategy = new JwtStrategy(
+  options,
+  async (payload: tokenService.JwtPayload, done) => {
+    try {
+      const user = await userRepo.findOneBy({ id: payload.sub });
+
+      if (user) {
+        return done(null, user);
+      } else {
+        return done(null, false);
+      }
+    } catch (err) {
+      return done(err, false);
+    }
+  }
+);
+
+const signup = async (dto: CreateUserInput) => {
+  const isUserExists = await userRepo.findOne({
+    where: { email: dto.email },
   });
   if (isUserExists) {
-    throw ApiError.BadRequest(`${email} is already taken`);
+    throw ApiError.BadRequest(`${dto.email} is already taken`);
   }
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const randomSixDigitNumber = Math.floor(Math.random() * 900000) + 100000;
-  const numberAsString = randomSixDigitNumber.toString();
-  const hashedActivationCode = crypto.createHash('sha256').update(numberAsString).digest('hex');
-  const activationCodeExpires: number = Date.now() + 1 * 60 * 1000;
-  await db.user.create({
-    data: {
-      firstname,
-      lastname,
-      email,
-      activationCode: hashedActivationCode,
-      activationCodeExpires,
-      password: hashedPassword,
-      role,
-    },
-  });
+  const { user, randomSixDigitNumber } = await userService.create(dto);
   try {
-    sendActivationCode(email, randomSixDigitNumber);
+    sendActivationCode(user, randomSixDigitNumber);
   } catch (e) {
-    await db.user.delete({ where: { email } });
-    throw new ApiError(500, 'There was an error sending the email. Try again later!');
+    await userRepo.remove(user);
+    throw new ApiError(
+      500,
+      'There was an error sending the email. Try again later!'
+    );
   }
 };
 
-const reSendActivationCode = async (email: string) => {
+const reSendActivationCode = async (user: User) => {
   const randomSixDigitNumber = Math.floor(Math.random() * 900000) + 100000;
   const numberAsString = randomSixDigitNumber.toString();
-  const hashedActivationCode = crypto.createHash('sha256').update(numberAsString).digest('hex');
-  const activationCodeExpires: number = Date.now() + 1 * 60 * 1000;
-
-  await db.user.update({
-    where: { email },
-    data: {
-      activationCode: hashedActivationCode,
-      activationCodeExpires,
-    },
-  });
+  const hashedActivationCode = crypto
+    .createHash('sha256')
+    .update(numberAsString)
+    .digest('hex');
+  const activationCodeExpires: Date = new Date();
+  activationCodeExpires.setMinutes(activationCodeExpires.getMinutes() + 1);
+  user.activationCode = hashedActivationCode;
+  user.activationCodeExpires = activationCodeExpires;
 
   try {
-    sendActivationCode(email, randomSixDigitNumber);
+    sendActivationCode(user, randomSixDigitNumber);
   } catch (e) {
-    throw new ApiError(500, 'There was an error sending the email. Try again later!');
+    throw new ApiError(
+      500,
+      'There was an error sending the email. Try again later!'
+    );
   }
 };
 
 const activate = async (activationCode: string) => {
-  const hashedActivationCode = crypto.createHash('sha256').update(activationCode).digest('hex');
-  const user = await db.user.findFirst({
+  const hashedActivationCode = crypto
+    .createHash('sha256')
+    .update(activationCode)
+    .digest('hex');
+  const user = await userRepo.findOne({
     where: {
       activationCode: hashedActivationCode,
-      activationCodeExpires: {
-        gt: Date.now(),
-      },
+      activationCodeExpires: MoreThanOrEqual(new Date()),
     },
   });
   if (!user) {
     throw ApiError.BadRequest('Incorrect Code');
   }
-  await db.user.update({
-    where: { id: user.id },
-    data: {
-      isActivated: true,
-    },
+  user.isActivated = true;
+  user.activationCode = null;
+  user.activationCodeExpires = null;
+  await userRepo.save(user);
+  const tokens = tokenService.generateTokens({
+    sub: user.id,
+    email: user.email,
   });
-  const tokens = tokenService.generateTokens({ id: user.id, email: user.email });
   await tokenService.saveToken(user.id, tokens.refreshToken);
   return tokens;
 };
 
-const signin = async (input: LoginUserInput) => {
+/* const signin = async (input: LoginUserInput) => {
   const existingUser = await db.user.findUnique({
     where: { email: input.email },
     select: getUserSelectFields(true),
@@ -92,11 +112,17 @@ const signin = async (input: LoginUserInput) => {
   if (!existingUser) {
     throw ApiError.BadRequest('Email or password incorrect');
   }
-  const isPassCorrect = await bcrypt.compare(input.password, existingUser.password);
+  const isPassCorrect = await bcrypt.compare(
+    input.password,
+    existingUser.password
+  );
   if (!isPassCorrect) {
     throw ApiError.BadRequest('Email or password incorrect');
   }
-  const tokens = tokenService.generateTokens({ id: existingUser.id, email: existingUser.email });
+  const tokens = tokenService.generateTokens({
+    id: existingUser.id,
+    email: existingUser.email,
+  });
   await tokenService.saveToken(existingUser.id, tokens.refreshToken);
   const { password, ...user } = existingUser;
   return { ...tokens, user };
@@ -111,14 +137,17 @@ const refresh = async (refreshToken: string) => {
   if (!userData || !tokenFromDb) {
     throw ApiError.UnauthorizedError();
   }
-  const tokens = tokenService.generateTokens({ id: userData.id, email: userData.email });
+  const tokens = tokenService.generateTokens({
+    id: userData.id,
+    email: userData.email,
+  });
   await tokenService.saveToken(userData.id, tokens.refreshToken);
   return tokens;
 };
 
 const signout = (refreshToken: string) => {
   return tokenService.removeToken(refreshToken);
-};
+}; */
 
 const cookieOptions = () => {
   const isProduction = process.env.NODE_ENV === 'production';
@@ -136,4 +165,13 @@ const cookieOptions = () => {
   return cookieOptions;
 };
 
-export { signup, reSendActivationCode, activate, signin, refresh, signout, cookieOptions };
+export {
+  strategy,
+  signup,
+  reSendActivationCode,
+  activate,
+  /*   signin,
+  refresh,
+  signout, */
+  cookieOptions,
+};

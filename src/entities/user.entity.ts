@@ -29,8 +29,8 @@ export class User extends Model {
   @Column({ unique: true })
   email: string;
 
-  @Column({ nullable: true })
-  profilPhoto?: string;
+  @Column({ type: 'varchar', nullable: true })
+  profilPhoto: string | null;
 
   @Column()
   password: string;
@@ -41,23 +41,23 @@ export class User extends Model {
   @Column({ default: false })
   isActivated: boolean;
 
-  @Column()
-  activationCode?: string;
+  @Column({ type: 'varchar', nullable: true })
+  activationCode: string | null;
 
-  @Column()
-  activationCodeExpires?: BigInt;
+  @Column({ type: 'timestamptz', nullable: true })
+  activationCodeExpires: Date | null;
 
-  @Column()
-  passwordChangedAt?: Date;
+  @Column({ type: 'timestamptz', nullable: true })
+  passwordChangedAt: Date | null;
 
-  @Column()
-  passwordResetToken?: string;
+  @Column({ type: 'varchar', nullable: true })
+  passwordResetToken: string | null;
 
-  @Column()
-  passwordResetExpires?: BigInt;
+  @Column({ type: 'timestamptz', nullable: true })
+  passwordResetExpires: Date | null;
 
-  @Column()
-  lastPostDate?: string;
+  @Column({ type: 'varchar', nullable: true })
+  lastPostDate: string | null;
 
   @ManyToOne(() => Role, (role) => role.users)
   @JoinColumn({ name: 'roleId' })

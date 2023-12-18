@@ -1,17 +1,21 @@
 import 'dotenv/config';
 import jwt from 'jsonwebtoken';
 import config from 'config';
+import { AppDataSource } from '../data-source';
+import { Token } from '../entities/token.entity';
 
-type DecodedToken<T> = T & {
+/* type DecodedToken<T> = T & {
   iat: number;
-};
+}; */
 
-type Payload = {
-  id: string;
+type JwtPayload = {
+  sub: string;
   email: string;
 };
 
-const generateTokens = (payload: Payload) => {
+const tokenRepo = AppDataSource.getRepository(Token);
+
+const generateTokens = (payload: JwtPayload) => {
   const accessToken = jwt.sign(payload, config.get<string>('accessTokenKey'), {
     expiresIn: config.get<string>('accessTokenExpiresIn'),
   });
@@ -28,7 +32,7 @@ const generateTokens = (payload: Payload) => {
   };
 };
 
-const validateAccessToken = (token: string): DecodedToken<Payload> => {
+/* const validateAccessToken = (token: string): DecodedToken<Payload> => {
   const userData = jwt.verify(
     token,
     config.get<string>('accessTokenKey')
@@ -42,47 +46,40 @@ const validateRefreshToken = (token: string): DecodedToken<Payload> => {
     config.get<string>('refreshTokenKey')
   ) as DecodedToken<Payload>;
   return userData;
-};
+}; */
 
 const saveToken = async (userId: string, refreshToken: string) => {
-  const tokenData = await db.token.findUnique({ where: { userId } });
+  const tokenData = await tokenRepo.findOne({ where: { userId } });
   if (tokenData) {
-    const updatedTokenData = await db.token.update({
-      where: { userId },
-      data: {
-        refreshToken,
-      },
-    });
-
-    return updatedTokenData;
+    tokenData.refreshToken = refreshToken;
+    return tokenRepo.save(tokenData);
   }
-  const token = await db.token.create({
-    data: {
-      userId,
-      refreshToken,
-    },
+  const token = tokenRepo.create({
+    userId,
+    refreshToken,
   });
   return token;
 };
 
 const findToken = async (refreshToken: string) => {
-  const tokenData = await db.token.findFirst({ where: { refreshToken } });
+  const tokenData = await tokenRepo.findOne({ where: { refreshToken } });
   return tokenData;
 };
 
 const removeToken = async (refreshToken: string) => {
-  const tokenData = await db.token.findFirst({ where: { refreshToken } });
+  const tokenData = await tokenRepo.findOne({ where: { refreshToken } });
   if (tokenData) {
-    await db.token.delete({ where: { id: tokenData.id } });
+    await tokenRepo.remove(tokenData);
   }
   return tokenData;
 };
 
 export {
   generateTokens,
-  validateAccessToken,
-  validateRefreshToken,
+  /*   validateAccessToken,
+  validateRefreshToken, */
   saveToken,
   findToken,
   removeToken,
+  JwtPayload,
 };

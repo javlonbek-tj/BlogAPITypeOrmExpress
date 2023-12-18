@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import 'dotenv/config';
 import config from 'config';
+import { User } from '../entities/user.entity';
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -19,11 +20,14 @@ export const sendMail = (to: string, subject: string, html: string) => {
   });
 };
 
-export const sendActivationCode = (email: string, randomSixDigitNumber: number) => {
+export const sendActivationCode = (
+  user: User,
+  randomSixDigitNumber: number
+) => {
   const subject = 'Your activation code';
   const html = `<div>
             <h3>Here is your activation code. Do not give it to anyone</h3>
              <h1>${randomSixDigitNumber}</h1> 
             </div>`;
-  sendMail(email, subject, html);
+  sendMail(user.email, subject, html);
 };

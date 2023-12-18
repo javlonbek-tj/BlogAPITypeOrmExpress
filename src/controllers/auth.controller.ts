@@ -2,7 +2,11 @@ import { NextFunction, Request, Response } from 'express';
 import 'dotenv/config';
 import * as authService from '../services/auth.service';
 
-export const register = async (req: Request, res: Response, next: NextFunction) => {
+export const register = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     await authService.signup(req.body);
     return res.status(201).json({
@@ -14,7 +18,11 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
   }
 };
 
-export const reSendCode = async (req: Request, res: Response, next: NextFunction) => {
+export const reSendCode = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { email } = req.body;
     await authService.reSendActivationCode(email);
@@ -27,7 +35,11 @@ export const reSendCode = async (req: Request, res: Response, next: NextFunction
   }
 };
 
-export const activateUser = async (req: Request, res: Response, next: NextFunction) => {
+export const activateUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const tokens = await authService.activate(req.body.activationCode);
     res.cookie('jwt', tokens.refreshToken, authService.cookieOptions());
@@ -40,7 +52,7 @@ export const activateUser = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
-export const login = async (req: Request, res: Response, next: NextFunction) => {
+/* export const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userData = await authService.signin(req.body);
     if (!userData.user.isActivated) {
@@ -58,9 +70,13 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
   } catch (e) {
     next(e);
   }
-};
+}; */
 
-export const refresh = async (req: Request, res: Response, next: NextFunction) => {
+/* export const refresh = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { jwt } = req.cookies;
     const tokens = await authService.refresh(jwt);
@@ -74,7 +90,11 @@ export const refresh = async (req: Request, res: Response, next: NextFunction) =
   }
 };
 
-export const logout = async (req: Request, res: Response, next: NextFunction) => {
+export const logout = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { jwt } = req.cookies;
     await authService.signout(jwt);
@@ -86,4 +106,4 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
   } catch (e) {
     next(e);
   }
-};
+}; */
