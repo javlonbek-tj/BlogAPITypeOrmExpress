@@ -2,6 +2,8 @@ import {
   Column,
   Entity,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   OneToOne,
@@ -67,12 +69,16 @@ export class User extends Model {
   @JoinColumn({ name: 'tokenId' })
   token: Token | null;
 
-  @ManyToOne(() => User, (user) => user.viewers)
-  @JoinColumn({ name: 'viewerId' })
-  viewer: User;
-
-  @OneToMany(() => User, (user) => user.viewer)
+  @ManyToMany(() => User, { cascade: true })
+  @JoinTable({
+    name: 'user_viewer',
+    joinColumn: { name: 'user_id' },
+    inverseJoinColumn: { name: 'viewer_id' },
+  })
   viewers: User[];
+
+  @ManyToMany(() => User, (user) => user.viewers)
+  viewedBy: User[];
 
   @ManyToOne(() => User, (user) => user.followers)
   @JoinColumn({ name: 'followerId' })

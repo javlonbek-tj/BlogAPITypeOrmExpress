@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import * as userService from '../services/user.service';
 import { GetUserInput, UpdateUserInput } from '../schemas/user.schema';
 
-export const profileViewersHandler = async (req: Request, res: Response, next: NextFunction) => {
+/* export const profileViewersHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = await userService.profileViewers(req.userId);
     res.status(200).json({
@@ -12,21 +12,29 @@ export const profileViewersHandler = async (req: Request, res: Response, next: N
   } catch (e) {
     next(e);
   }
-};
+}; */
 
-export const oneUserHandler = async (req: Request<GetUserInput>, res: Response, next: NextFunction) => {
+export const oneUserHandler = async (
+  req: Request<GetUserInput>,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const userToBeViewed = await userService.findOne(req.params.userId, req.userId);
+    const userId = req.params.userId;
+    const viewerId = req.user;
+    console.log(req.user);
+
+    /* const userToBeViewed = await userService.findOne(userId, viewerId); */
     res.status(200).json({
       status: 'success',
-      data: userToBeViewed,
+      data: 'ok',
     });
   } catch (e) {
     next(e);
   }
 };
 
-export const followerUserHandler = async (req: Request<GetUserInput>, res: Response, next: NextFunction) => {
+/* export const followerUserHandler = async (req: Request<GetUserInput>, res: Response, next: NextFunction) => {
   try {
     const followingUser = await userService.followUser(req.params.userId, req.userId);
     res.status(200).json({
@@ -158,4 +166,4 @@ export const deleteAccountHanlder = async (req: Request, res: Response, next: Ne
   } catch (e) {
     next(e);
   }
-};
+}; */

@@ -1,4 +1,5 @@
 import multer, { StorageEngine } from 'multer';
+import fs from 'fs';
 import { Request } from 'express';
 import { ensureDir } from 'fs-extra';
 import { path } from 'app-root-path';
@@ -28,9 +29,16 @@ const fileFilter = (
   }
 };
 
-const upload = multer({
+export const upload = multer({
   storage: fileStorage,
   fileFilter,
 });
 
-export default upload;
+// Delete file
+export const deleteFile = (filePath: string) => {
+  fs.unlink(filePath, (err) => {
+    if (err) {
+      throw new Error('Error while deleting file');
+    }
+  });
+};

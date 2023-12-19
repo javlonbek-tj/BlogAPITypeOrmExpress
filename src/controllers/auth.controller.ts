@@ -52,16 +52,20 @@ export const activateUser = async (
   }
 };
 
-/* export const login = async (req: Request, res: Response, next: NextFunction) => {
+export const login = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const userData = await authService.signin(req.body);
-    if (!userData.user.isActivated) {
+    /* if (!userData.user.isActivated) {
       await authService.reSendActivationCode(userData.user.email);
       return res.status(200).json({
         status: 'success',
         message: 'Code has been resent to your email!',
       });
-    }
+    } */
     res.cookie('jwt', userData.refreshToken, authService.cookieOptions());
     return res.status(200).json({
       status: 'success',
@@ -70,7 +74,7 @@ export const activateUser = async (
   } catch (e) {
     next(e);
   }
-}; */
+};
 
 /* export const refresh = async (
   req: Request,

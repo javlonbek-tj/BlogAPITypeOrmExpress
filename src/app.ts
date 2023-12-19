@@ -6,13 +6,14 @@ import helmet from 'helmet';
 import compression from 'compression';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import passport from 'passport';
 import errorMiddleware from './middlewares/error.middleware';
 import api from './routes';
 import logger from './utils/logger';
 import validateEnv from './utils/validateEnv';
-import passport from 'passport';
-import { strategy } from './services/auth.service';
 import connectDB from './data-source';
+import ATStrategy from './utils/strategies/at.strategy';
+import RTStrategy from './utils/strategies/rt.strategy';
 
 const port: number = config.get<number>('port');
 
@@ -24,7 +25,8 @@ async function start(): Promise<void> {
 
     app.use('/uploads', express.static(path.resolve('uploads')));
 
-    passport.use(strategy);
+    passport.use('jwt', ATStrategy);
+    passport.use('jwt-refresh', RTStrategy);
 
     passport.initialize();
 

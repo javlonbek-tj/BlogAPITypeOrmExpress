@@ -1,41 +1,16 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { Strategy as JwtStrategy } from 'passport-jwt';
-import { ExtractJwt } from 'passport-jwt';
 import 'dotenv/config';
 import { CreateUserInput, LoginUserInput } from '../schemas/user.schema';
 import ApiError from '../utils/appError';
 import { sendActivationCode, sendMail } from './mail.service';
 import * as tokenService from './token.service';
-import { getUserSelectFields } from '../utils/getSelectedField';
 import { AppDataSource } from '../data-source';
 import { User } from '../entities/user.entity';
 import * as userService from './user.service';
-import { MoreThan, MoreThanOrEqual } from 'typeorm';
+import { MoreThanOrEqual } from 'typeorm';
 
 const userRepo = AppDataSource.getRepository(User);
-
-const options = {
-  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  secretOrKey: 'secret',
-};
-
-const strategy = new JwtStrategy(
-  options,
-  async (payload: tokenService.JwtPayload, done) => {
-    try {
-      const user = await userRepo.findOneBy({ id: payload.sub });
-
-      if (user) {
-        return done(null, user);
-      } else {
-        return done(null, false);
-      }
-    } catch (err) {
-      return done(err, false);
-    }
-  }
-);
 
 const signup = async (dto: CreateUserInput) => {
   const isUserExists = await userRepo.findOne({
@@ -104,10 +79,9 @@ const activate = async (activationCode: string) => {
   return tokens;
 };
 
-/* const signin = async (input: LoginUserInput) => {
-  const existingUser = await db.user.findUnique({
+const signin = async (input: LoginUserInput) => {
+  const existingUser = await userRepo.findOne({
     where: { email: input.email },
-    select: getUserSelectFields(true),
   });
   if (!existingUser) {
     throw ApiError.BadRequest('Email or password incorrect');
@@ -120,7 +94,7 @@ const activate = async (activationCode: string) => {
     throw ApiError.BadRequest('Email or password incorrect');
   }
   const tokens = tokenService.generateTokens({
-    id: existingUser.id,
+    sub: existingUser.id,
     email: existingUser.email,
   });
   await tokenService.saveToken(existingUser.id, tokens.refreshToken);
@@ -128,26 +102,25 @@ const activate = async (activationCode: string) => {
   return { ...tokens, user };
 };
 
-const refresh = async (refreshToken: string) => {
+const refresh = async (refreshToken: string, user: User) => {
   if (!refreshToken) {
     throw ApiError.UnauthenticatedError();
   }
-  const userData = tokenService.validateRefreshToken(refreshToken);
   const tokenFromDb = await tokenService.findToken(refreshToken);
-  if (!userData || !tokenFromDb) {
+  if (!user || !tokenFromDb) {
     throw ApiError.UnauthorizedError();
   }
   const tokens = tokenService.generateTokens({
-    id: userData.id,
-    email: userData.email,
+    sub: user.id,
+    email: user.email,
   });
-  await tokenService.saveToken(userData.id, tokens.refreshToken);
+  await tokenService.saveToken(user.id, tokens.refreshToken);
   return tokens;
 };
 
 const signout = (refreshToken: string) => {
   return tokenService.removeToken(refreshToken);
-}; */
+};
 
 const cookieOptions = () => {
   const isProduction = process.env.NODE_ENV === 'production';
@@ -165,13 +138,24 @@ const cookieOptions = () => {
   return cookieOptions;
 };
 
+const changedPasswordAfter = (
+  JWTTimestamp: number,
+  passwordChangedAt: Date | null
+): boolean => {
+  if (passwordChangedAt) {
+    const changedTimestamp: number = passwordChangedAt.getTime() / 1000;
+    return JWTTimestamp < changedTimestamp;
+  }
+  return false;
+};
+
 export {
-  strategy,
   signup,
   reSendActivationCode,
   activate,
-  /*   signin,
+  signin,
   refresh,
-  signout, */
+  signout,
   cookieOptions,
+  changedPasswordAfter,
 };
