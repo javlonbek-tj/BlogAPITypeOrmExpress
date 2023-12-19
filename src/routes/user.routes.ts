@@ -12,6 +12,7 @@ import {
   deleteAccountHanlder,
   followerUserHandler,
   forgotPasswordHandler, */
+  getAllUsersHandler,
   oneUserHandler,
   /* resetPasswordHandler,
   unBlockUserHandler,
@@ -25,6 +26,12 @@ import passport from 'passport';
 /* import { uploadMiddleware } from '../middlewares/fileUploadMiddleware'; */
 
 const userRoutes = Router();
+
+userRoutes.get(
+  '/',
+  passport.authenticate('jwt', { session: false }),
+  getAllUsersHandler
+);
 
 /* userRoutes.get('/profile-viewers', isAuth, profileViewersHandler); */
 

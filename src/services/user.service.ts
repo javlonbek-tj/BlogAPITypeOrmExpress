@@ -58,32 +58,36 @@ const create = async (dto: CreateUserInput) => {
   return { user, randomSixDigitNumber };
 };
 
-const findOne = async (userId: string, viewerId: string) => {
-  const userToBeViewed = await userRepo.findOneBy({ id: userId });
-  if (userToBeViewed && viewerId) {
+const findAll = async () => {
+  return await userRepo.find();
+}
+
+const findOne = async (userId: string, user: any) => {
+  const userToBeViewed = await userRepo.findOne({
+    where: { id: userId },
+    relations: ['posts', 'viewers'],
+  });
+  if (userToBeViewed && user) {
     if (userToBeViewed.posts.length <= 0) {
-      userToBeViewed.userAward = 'BRONZE';
+      userToBeViewed.userAward = 'bronze';
       await userRepo.save(userToBeViewed);
     }
     if (userToBeViewed.posts.length > 10) {
-      userToBeViewed.userAward = 'SILVER';
+      userToBeViewed.userAward = 'silver';
       await userRepo.save(userToBeViewed);
     }
     if (userToBeViewed.posts.length > 20) {
-      userToBeViewed.userAward = 'GOLD';
+      userToBeViewed.userAward = 'gold';
       await userRepo.save(userToBeViewed);
     }
-    const isUserAlreadyViewed = userToBeViewed.viewers.find(
-      (viewer) => viewer.id === viewerId
+    const isUserAlreadyViewed = userToBeViewed?.viewers.find(
+      (viewer) => viewer.id === user?.id
     );
     if (isUserAlreadyViewed) {
       return userToBeViewed;
     }
-    const user = await userRepo.findOneBy({ id: viewerId });
-    if (user) {
-      userToBeViewed.viewers.push(user);
-    }
-    await userRepo.save(userToBeViewed);
+    userToBeViewed.viewers.push(user);
+    return await userRepo.save(userToBeViewed);
   }
   throw ApiError.BadRequest('User not found');
 };
@@ -430,6 +434,7 @@ const deleteAccount = async (userId: string) => {
 }; */
 
 export {
+  findAll,
   findOne,
   /*  profileViewers,
   followUser,

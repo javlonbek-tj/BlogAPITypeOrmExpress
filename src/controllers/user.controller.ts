@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import * as userService from '../services/user.service';
 import { GetUserInput, UpdateUserInput } from '../schemas/user.schema';
+import { User } from '../entities/user.entity';
 
 /* export const profileViewersHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -14,20 +15,38 @@ import { GetUserInput, UpdateUserInput } from '../schemas/user.schema';
   }
 }; */
 
+export const getAllUsersHandler = async (req: Request,
+  res: Response,
+  next: NextFunction) => {
+    try {
+      const users = await userService.findAll()
+      res.status(200).json({
+      status: 'success',
+      data: users
+    });
+    } catch (e) {
+      next(e)
+    }
+}
+
+declare namespace Express {
+  export interface Request {
+      user: User;
+  }
+}
+
 export const oneUserHandler = async (
-  req: Request<GetUserInput>,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const userId = req.params.userId;
-    const viewerId = req.user;
-    console.log(req.user);
-
-    /* const userToBeViewed = await userService.findOne(userId, viewerId); */
+    const user = req.user;
+    const userToBeViewed = await userService.findOne(userId, user);
     res.status(200).json({
       status: 'success',
-      data: 'ok',
+      data: userToBeViewed
     });
   } catch (e) {
     next(e);
