@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Request, Response, Express } from 'express';
 import * as userService from '../services/user.service';
 import { GetUserInput, UpdateUserInput } from '../schemas/user.schema';
 import { User } from '../entities/user.entity';
@@ -15,38 +15,33 @@ import { User } from '../entities/user.entity';
   }
 }; */
 
-export const getAllUsersHandler = async (req: Request,
-  res: Response,
-  next: NextFunction) => {
-    try {
-      const users = await userService.findAll()
-      res.status(200).json({
-      status: 'success',
-      data: users
-    });
-    } catch (e) {
-      next(e)
-    }
-}
-
-declare namespace Express {
-  export interface Request {
-      user: User;
-  }
-}
-
-export const oneUserHandler = async (
+export const getAllUsersHandler = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const userId = req.params.userId;
-    const user = req.user;
-    const userToBeViewed = await userService.findOne(userId, user);
+    const users = await userService.findAll();
     res.status(200).json({
       status: 'success',
-      data: userToBeViewed
+      data: users,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const oneUserHandler = async (
+  req: Request<GetUserInput>,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.params.userId;
+    const userToBeViewed = await userService.findOne(userId, req.user as User);
+    res.status(200).json({
+      status: 'success',
+      data: userToBeViewed,
     });
   } catch (e) {
     next(e);

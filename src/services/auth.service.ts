@@ -86,6 +86,7 @@ const signin = async (input: LoginUserInput) => {
   if (!existingUser) {
     throw ApiError.BadRequest('Email or password incorrect');
   }
+
   const isPassCorrect = await bcrypt.compare(
     input.password,
     existingUser.password
@@ -98,8 +99,7 @@ const signin = async (input: LoginUserInput) => {
     email: existingUser.email,
   });
   await tokenService.saveToken(existingUser.id, tokens.refreshToken);
-  const { password, ...user } = existingUser;
-  return { ...tokens, user };
+  return { ...tokens, user: existingUser };
 };
 
 const refresh = async (refreshToken: string, user: User) => {

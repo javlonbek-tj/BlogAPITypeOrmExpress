@@ -16,12 +16,7 @@ const ATStrategy = new JwtStrategy(
   options,
   async (payload: tokenService.JwtPayload, done) => {
     try {
-      const user = await userRepo.findOneBy({ id: payload.sub }); 
-      if(user) {
-            console.log(user.id);
-      }
-  
-         
+      const user = await userRepo.findOneBy({ id: payload.sub });
       if (user && !changedPasswordAfter(payload.iat, user.passwordChangedAt)) {
         return done(null, user);
       } else {

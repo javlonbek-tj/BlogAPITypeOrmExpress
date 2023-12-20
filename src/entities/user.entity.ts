@@ -72,26 +72,25 @@ export class User extends Model {
   @ManyToMany(() => User, { cascade: true })
   @JoinTable({
     name: 'user_viewer',
-    joinColumn: { name: 'user_id' },
-    inverseJoinColumn: { name: 'viewer_id' },
+    joinColumn: { name: 'userId' },
+    inverseJoinColumn: { name: 'viewerId' },
   })
   viewers: User[];
 
-  @ManyToMany(() => User, (user) => user.viewers)
-  viewedBy: User[];
-
-  @ManyToOne(() => User, (user) => user.followers)
-  @JoinColumn({ name: 'followerId' })
-  follower: User;
-
-  @OneToMany(() => User, (user) => user.follower)
+  @ManyToMany(() => User, (user) => user.followers)
+  @JoinTable({
+    name: 'user_followers',
+    joinColumn: { name: 'userId' },
+    inverseJoinColumn: { name: 'followerId' },
+  })
   followers: User[];
 
-  @ManyToOne(() => User, (user) => user.followings)
-  @JoinColumn({ name: 'followingId' })
-  following: User;
-
-  @OneToMany(() => User, (user) => user.following)
+  @ManyToMany(() => User, (user) => user.followings)
+  @JoinTable({
+    name: 'user_followings',
+    joinColumn: { name: 'userId' },
+    inverseJoinColumn: { name: 'followingId' },
+  })
   followings: User[];
 
   @OneToMany(() => Post, (post) => post.user)
@@ -100,13 +99,26 @@ export class User extends Model {
   @OneToMany(() => Comment, (comment) => comment.user)
   comments: Comment[];
 
-  @ManyToOne(() => User, (user) => user.blockings)
-  @JoinColumn({ name: 'blockingId' })
-  blocking: User;
-
-  @OneToMany(() => User, (user) => user.blocking)
+  @ManyToMany(() => User, (user) => user.blockings)
+  @JoinTable({
+    name: 'user_blockings',
+    joinColumn: { name: 'userId' },
+    inverseJoinColumn: { name: 'blockingId' },
+  })
   blockings: User[];
 
   @Column({ type: 'enum', enum: AwardEnumType, default: AwardEnumType.BRONZE })
   userAward: string;
+
+  toJSON() {
+    return {
+      ...this,
+      password: undefined,
+      activationCode: undefined,
+      activationCodeExpires: undefined,
+      passwordChangedAt: undefined,
+      passwordResetToken: undefined,
+      passwordResetExpires: undefined,
+    };
+  }
 }

@@ -60,14 +60,14 @@ const create = async (dto: CreateUserInput) => {
 
 const findAll = async () => {
   return await userRepo.find();
-}
+};
 
-const findOne = async (userId: string, user: any) => {
+const findOne = async (userId: string, viewingUser: User) => {
   const userToBeViewed = await userRepo.findOne({
     where: { id: userId },
     relations: ['posts', 'viewers'],
   });
-  if (userToBeViewed && user) {
+  if (userToBeViewed && viewingUser) {
     if (userToBeViewed.posts.length <= 0) {
       userToBeViewed.userAward = 'bronze';
       await userRepo.save(userToBeViewed);
@@ -80,14 +80,16 @@ const findOne = async (userId: string, user: any) => {
       userToBeViewed.userAward = 'gold';
       await userRepo.save(userToBeViewed);
     }
-    const isUserAlreadyViewed = userToBeViewed?.viewers.find(
-      (viewer) => viewer.id === user?.id
+    const isUserAlreadyViewed = userToBeViewed.viewers.find(
+      (viewer) => viewer.id === viewingUser.id
     );
     if (isUserAlreadyViewed) {
+      /* const { viewers, posts, ...user } = userToBeViewed; */
       return userToBeViewed;
     }
-    userToBeViewed.viewers.push(user);
-    return await userRepo.save(userToBeViewed);
+    userToBeViewed.viewers.push(viewingUser);
+    const { viewers, posts, ...user } = await userRepo.save(userToBeViewed);
+    return user;
   }
   throw ApiError.BadRequest('User not found');
 };
