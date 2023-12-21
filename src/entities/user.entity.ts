@@ -61,11 +61,11 @@ export class User extends Model {
   @Column({ type: 'varchar', nullable: true })
   lastPostDate: string | null;
 
-  @ManyToOne(() => Role, (role) => role.users)
+  @ManyToOne(() => Role, role => role.users)
   @JoinColumn({ name: 'roleId' })
   role: Role;
 
-  @OneToOne(() => Token, (token) => token.user, { nullable: true })
+  @OneToOne(() => Token, token => token.user, { nullable: true })
   @JoinColumn({ name: 'tokenId' })
   token: Token | null;
 
@@ -77,7 +77,7 @@ export class User extends Model {
   })
   viewers: User[];
 
-  @ManyToMany(() => User, (user) => user.followers)
+  @ManyToMany(() => User, { cascade: true })
   @JoinTable({
     name: 'user_followers',
     joinColumn: { name: 'userId' },
@@ -85,7 +85,7 @@ export class User extends Model {
   })
   followers: User[];
 
-  @ManyToMany(() => User, (user) => user.followings)
+  @ManyToMany(() => User, { cascade: true })
   @JoinTable({
     name: 'user_followings',
     joinColumn: { name: 'userId' },
@@ -93,13 +93,13 @@ export class User extends Model {
   })
   followings: User[];
 
-  @OneToMany(() => Post, (post) => post.user)
+  @OneToMany(() => Post, post => post.user)
   posts: Post[];
 
-  @OneToMany(() => Comment, (comment) => comment.user)
+  @OneToMany(() => Comment, comment => comment.user)
   comments: Comment[];
 
-  @ManyToMany(() => User, (user) => user.blockings)
+  @ManyToMany(() => User, { cascade: true })
   @JoinTable({
     name: 'user_blockings',
     joinColumn: { name: 'userId' },
@@ -109,8 +109,6 @@ export class User extends Model {
 
   @Column({ type: 'enum', enum: AwardEnumType, default: AwardEnumType.BRONZE })
   userAward: string;
-
-  
 
   toJSON() {
     return {

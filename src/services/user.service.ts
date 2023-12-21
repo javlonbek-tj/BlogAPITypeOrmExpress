@@ -21,14 +21,9 @@ const userRepo = AppDataSource.getRepository(User);
 
 const createPasswordResetToken = async (user: User) => {
   const resetToken = crypto.randomBytes(32).toString('hex');
-  const passwordResetToken = crypto
-    .createHash('sha256')
-    .update(resetToken)
-    .digest('hex');
+  const passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
   const passwordResetExpires: Date = new Date();
-  passwordResetExpires.setSeconds(
-    passwordResetExpires.getSeconds() + 10 * 60 * 1000
-  );
+  passwordResetExpires.setSeconds(passwordResetExpires.getSeconds() + 10 * 60 * 1000);
   passwordResetExpires.setMilliseconds(0);
   user.passwordResetToken = passwordResetToken;
   user.passwordResetExpires = passwordResetExpires;
@@ -41,10 +36,7 @@ const create = async (dto: CreateUserInput) => {
   const role = await roleService.getRoleByValue('USER');
   const randomSixDigitNumber = Math.floor(Math.random() * 900000) + 100000;
   const numberAsString = randomSixDigitNumber.toString();
-  const hashedActivationCode = crypto
-    .createHash('sha256')
-    .update(numberAsString)
-    .digest('hex');
+  const hashedActivationCode = crypto.createHash('sha256').update(numberAsString).digest('hex');
   const activationCodeExpires: Date = new Date();
   activationCodeExpires.setSeconds(activationCodeExpires.getSeconds() + 60); // Add 60 seconds
   activationCodeExpires.setMilliseconds(0);
@@ -82,9 +74,7 @@ const findOne = async (userId: string, viewingUser: User) => {
       userToBeViewed.userAward = 'gold';
       await userRepo.save(userToBeViewed);
     }
-    const isUserAlreadyViewed = userToBeViewed.viewers.find(
-      (viewer) => viewer.id === viewingUser.id
-    );
+    const isUserAlreadyViewed = userToBeViewed.viewers.find(viewer => viewer.id === viewingUser.id);
     if (isUserAlreadyViewed) {
       return userToBeViewed;
     }
@@ -105,27 +95,43 @@ const profileViewers = async (userId: string) => {
   return user;
 };
 
+import { classToPlain } from 'class-transformer';
+
 const followUser = async (followerId: string, followingId: string) => {
   const follower = await userRepo.findOne({
     where: { id: followerId },
     relations: ['followers'],
   });
+
   const following = await userRepo.findOne({
     where: { id: followingId },
     relations: ['followings'],
   });
+
   if (follower && following) {
     const isUserAlreadyFollowed = following.followings.find(
-      (followedUser) => followedUser.id === followerId
+      followedUser => followedUser.id === followerId,
     );
+
     if (isUserAlreadyFollowed) {
       throw ApiError.BadRequest('You have already followed this user');
     }
-    follower.followers.push(following);
-    following.followings.push(follower);
-    await userRepo.save(follower);
-    return userRepo.save(following);
+
+    // Exclude circular references manually before saving
+    const followerData = classToPlain(follower);
+    const followingData = classToPlain(following);
+
+    // Manually push to the arrays
+    followerData.followers.push({ id: following.id }); // Replace with the appropriate fields
+    followingData.followings.push({ id: follower.id }); // Replace with the appropriate fields
+
+    // Save the entities
+    await userRepo.save(followerData);
+    await userRepo.save(followingData);
+
+    return followingData;
   }
+
   throw ApiError.BadRequest('User not found');
 };
 
@@ -140,16 +146,14 @@ const unFollowUser = async (unfollowerId: string, unFollowingId: string) => {
   });
   if (unFollower && unFollowing) {
     const isUserAlreadyUnFollowed = unFollowing.followings.find(
-      (unFollowing) => unFollowing.id === unfollowerId
+      unFollowing => unFollowing.id === unfollowerId,
     );
     if (!isUserAlreadyUnFollowed) {
       throw ApiError.BadRequest('You have not followed this user');
     }
-    unFollower.followers = unFollower.followers.filter(
-      (follower) => follower.id !== unFollowingId
-    );
+    unFollower.followers = unFollower.followers.filter(follower => follower.id !== unFollowingId);
     unFollowing.followings = unFollowing.followings.filter(
-      (unFollowing) => unFollowing.id !== unfollowerId
+      unFollowing => unFollowing.id !== unfollowerId,
     );
     await userRepo.save(unFollower);
     return userRepo.save(unFollowing);
@@ -167,7 +171,7 @@ const blockUser = async (blockedUserId: string, blockingUserId: string) => {
   });
   if (userToBeBlocked && blockingUser) {
     const isUserAlreadyBlocked = blockingUser.blockings.find(
-      (blocking) => blocking.id === blockedUserId
+      blocking => blocking.id === blockedUserId,
     );
     if (isUserAlreadyBlocked) {
       throw ApiError.BadRequest('You have already blocked this user');
@@ -178,10 +182,7 @@ const blockUser = async (blockedUserId: string, blockingUserId: string) => {
   throw ApiError.BadRequest('User not found');
 };
 
-const unBlockUser = async (
-  unBlockedUserId: string,
-  unBlockingUserId: string
-) => {
+const unBlockUser = async (unBlockedUserId: string, unBlockingUserId: string) => {
   const userToBeUnBlocked = await userRepo.findOne({
     where: { id: unBlockedUserId },
   });
@@ -191,13 +192,13 @@ const unBlockUser = async (
   });
   if (userToBeUnBlocked && unBlockingUser) {
     const isUserAlreadyUnBlocked = unBlockingUser.blockings.find(
-      (blocking) => blocking.id === unBlockedUserId
+      blocking => blocking.id === unBlockedUserId,
     );
     if (!isUserAlreadyUnBlocked) {
       throw ApiError.BadRequest('You have not blocked this user');
     }
     unBlockingUser.blockings = unBlockingUser.blockings.filter(
-      (unBloking) => unBloking.id !== unBlockedUserId
+      unBloking => unBloking.id !== unBlockedUserId,
     );
     return userRepo.save(unBlockingUser);
   }
@@ -252,16 +253,14 @@ const updateUserInfo = async (user: User, input: UpdateUserInput) => {
 
 const changeUserPassword = async (
   user: User,
-  { oldPass, newPass, newPassConfirm }: UpdatePasswordInput
+  { oldPass, newPass, newPassConfirm }: UpdatePasswordInput,
 ) => {
   const isPassEquals = await bcrypt.compare(oldPass, user.password);
   if (!isPassEquals) {
     throw ApiError.BadRequest('Old password is incorrect');
   }
   if (newPass !== newPassConfirm) {
-    throw ApiError.BadRequest(
-      'New Password and Password Confirmation are not the same'
-    );
+    throw ApiError.BadRequest('New Password and Password Confirmation are not the same');
   }
   const hashPassword = await bcrypt.hash(newPass, 10);
   user.password = hashPassword;
@@ -275,16 +274,12 @@ const forgotPassword = async (email: string) => {
     throw ApiError.BadRequest('User not Found');
   }
   const resetToken = await createPasswordResetToken(user);
-  const resetUrl = `${config.get<string>(
-    'apiUrl'
-  )}/users/resetPassword/${resetToken}`;
+  const resetUrl = `${config.get<string>('apiUrl')}/users/resetPassword/${resetToken}`;
 
   // Send resetUrl to user's email
   try {
     const subject = 'Your password reset token (valid for only 10 minutes)';
-    const link = `${config.get<string>(
-      'apiUrl'
-    )}/users/resetPassword/${resetUrl}`;
+    const link = `${config.get<string>('apiUrl')}/users/resetPassword/${resetUrl}`;
     const html = `<div>
             <h1>For reset password hit this link</h1>
             <a href="${link}">${link}</a>
@@ -297,14 +292,8 @@ const forgotPassword = async (email: string) => {
   }
 };
 
-const resetPassword = async (
-  resetToken: string,
-  { password }: ResetPasswordInput
-) => {
-  const passwordResetToken = crypto
-    .createHash('sha256')
-    .update(resetToken)
-    .digest('hex');
+const resetPassword = async (resetToken: string, { password }: ResetPasswordInput) => {
+  const passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
   const user = await userRepo.findOne({
     where: {
       passwordResetToken,

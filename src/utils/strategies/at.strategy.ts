@@ -12,19 +12,16 @@ const options = {
   secretOrKey: 'secret',
 };
 
-const ATStrategy = new JwtStrategy(
-  options,
-  async (payload: tokenService.JwtPayload, done: any) => {
-    try {
-      const user = await userRepo.findOneBy({ id: payload.sub });
-      if (!user || changedPasswordAfter(payload.iat, user.passwordChangedAt)) {
-        return done(null, false);
-      }
-      return done(null, user);
-    } catch (err) {
-      return done(err, false);
+const ATStrategy = new JwtStrategy(options, async (payload: tokenService.JwtPayload, done: any) => {
+  try {
+    const user = await userRepo.findOneBy({ id: payload.sub });
+    if (!user || changedPasswordAfter(payload.iat, user.passwordChangedAt)) {
+      return done(null, false);
     }
+    return done(null, user);
+  } catch (err) {
+    return done(err, false);
   }
-);
+});
 
 export default ATStrategy;
