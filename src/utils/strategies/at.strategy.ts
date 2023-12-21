@@ -14,14 +14,13 @@ const options = {
 
 const ATStrategy = new JwtStrategy(
   options,
-  async (payload: tokenService.JwtPayload, done) => {
+  async (payload: tokenService.JwtPayload, done: any) => {
     try {
       const user = await userRepo.findOneBy({ id: payload.sub });
-      if (user && !changedPasswordAfter(payload.iat, user.passwordChangedAt)) {
-        return done(null, user);
-      } else {
+      if (!user || changedPasswordAfter(payload.iat, user.passwordChangedAt)) {
         return done(null, false);
       }
+      return done(null, user);
     } catch (err) {
       return done(err, false);
     }

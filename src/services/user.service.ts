@@ -14,6 +14,8 @@ import { sendMail } from './mail.service';
 import { AppDataSource } from '../data-source';
 import { User } from '../entities/user.entity';
 import * as roleService from './role.service';
+import { deleteFile } from '../utils/files';
+import { MoreThanOrEqual } from 'typeorm';
 
 const userRepo = AppDataSource.getRepository(User);
 
@@ -65,7 +67,7 @@ const findAll = async () => {
 const findOne = async (userId: string, viewingUser: User) => {
   const userToBeViewed = await userRepo.findOne({
     where: { id: userId },
-    relations: ['posts', 'viewers'],
+    relations: ['posts', 'viewers', 'followers', 'followings'],
   });
   if (userToBeViewed && viewingUser) {
     if (userToBeViewed.posts.length <= 0) {
@@ -84,24 +86,18 @@ const findOne = async (userId: string, viewingUser: User) => {
       (viewer) => viewer.id === viewingUser.id
     );
     if (isUserAlreadyViewed) {
-      /* const { viewers, posts, ...user } = userToBeViewed; */
       return userToBeViewed;
     }
     userToBeViewed.viewers.push(viewingUser);
-    const { viewers, posts, ...user } = await userRepo.save(userToBeViewed);
-    return user;
+    return await userRepo.save(userToBeViewed);
   }
   throw ApiError.BadRequest('User not found');
 };
 
-/* const profileViewers = async (userId: string) => {
-  const user = await userRepo.findUnique({
+const profileViewers = async (userId: string) => {
+  const user = await userRepo.findOne({
     where: { id: userId },
-    select: {
-      viewers: {
-        select: getUserSelectFields(),
-      },
-    },
+    relations: ['viewers'],
   });
   if (!user) {
     throw ApiError.BadRequest('User not found');
@@ -109,104 +105,63 @@ const findOne = async (userId: string, viewingUser: User) => {
   return user;
 };
 
-const followUser = async (followedUserId: string, followingUserId: string) => {
-  const userToBeFollowed = await userRepo.findUnique({
-    where: { id: followedUserId },
-    select: getUserSelectFields(),
+const followUser = async (followerId: string, followingId: string) => {
+  const follower = await userRepo.findOne({
+    where: { id: followerId },
   });
-  const followingUser = await userRepo.findUnique({
-    where: { id: followingUserId },
-    select: getUserSelectFields(),
+  const following = await userRepo.findOne({
+    where: { id: followingId },
+    relations: ['followings'],
   });
-  if (userToBeFollowed && followingUser) {
-    const isUserAlreadyFollowed = followingUser.followings.find(
-      (following) => following.id === followedUserId
+  if (follower && following) {
+    const isUserAlreadyFollowed = following.followings.find(
+      (following) => following.id === followerId
     );
     if (isUserAlreadyFollowed) {
       throw ApiError.BadRequest('You have already followed this user');
     }
-    await userRepo.update({
-      where: { id: followedUserId },
-      data: {
-        followers: {
-          set: [
-            ...userToBeFollowed.followers.map((f) => ({ id: f.id })),
-            { id: followingUserId },
-          ],
-        },
-      },
-    });
-    const updatedFollowingUser = await userRepo.update({
-      where: { id: followingUserId },
-      data: {
-        followings: {
-          set: [
-            ...followingUser.followings.map((f) => ({ id: f.id })),
-            { id: followedUserId },
-          ],
-        },
-      },
-      select: getUserSelectFields(),
-    });
-    return updatedFollowingUser;
+    follower.followers.push(following);
+    following.followings.push(follower); // TRY ADDING ID OF THE USER
+    await userRepo.save(follower);
+    return userRepo.save(following);
   }
   throw ApiError.BadRequest('User not found');
 };
 
-const unFollowUser = async (
-  unFollowedUserId: string,
-  unFollowingUserId: string
-) => {
-  const userToBeUnFollowed = await userRepo.findUnique({
-    where: { id: unFollowedUserId },
-    select: getUserSelectFields(),
+const unFollowUser = async (unfollowerId: string, unFollowingId: string) => {
+  const unFollower = await userRepo.findOne({
+    where: { id: unfollowerId },
   });
-  const unFollowingUser = await userRepo.findUnique({
-    where: { id: unFollowingUserId },
-    select: getUserSelectFields(),
+  const unFollowing = await userRepo.findOne({
+    where: { id: unFollowingId },
+    relations: ['followings'],
   });
-  if (userToBeUnFollowed && unFollowingUser) {
-    const isUserAlreadyUnFollowed = unFollowingUser.followings.find(
-      (unFollowing) => unFollowing.id === unFollowedUserId
+  if (unFollower && unFollowing) {
+    const isUserAlreadyUnFollowed = unFollowing.followings.find(
+      (unFollowing) => unFollowing.id === unfollowerId
     );
     if (!isUserAlreadyUnFollowed) {
       throw ApiError.BadRequest('You have not followed this user');
     }
-    await userRepo.update({
-      where: { id: unFollowedUserId },
-      data: {
-        followers: {
-          set: userToBeUnFollowed.followers.filter(
-            (follower) => follower.id !== unFollowingUserId
-          ),
-        },
-      },
-    });
-    const updatedUnFollowingUser = await userRepo.update({
-      where: { id: unFollowingUserId },
-      data: {
-        followings: {
-          set: unFollowingUser.followings.filter(
-            (following) => following.id !== unFollowedUserId
-          ),
-        },
-      },
-      select: getUserSelectFields(),
-    });
-
-    return updatedUnFollowingUser;
+    unFollower.followers = unFollower.followers.filter(
+      (follower) => follower.id !== unFollowingId
+    );
+    unFollowing.followings = unFollowing.followers.filter(
+      (unFollowing) => unFollowing.id !== unfollowerId
+    );
+    await userRepo.save(unFollower);
+    return userRepo.save(unFollowing);
   }
   throw ApiError.BadRequest('User not found');
 };
 
 const blockUser = async (blockedUserId: string, blockingUserId: string) => {
-  const userToBeBlocked = await userRepo.findUnique({
+  const userToBeBlocked = await userRepo.findOne({
     where: { id: blockedUserId },
-    select: getUserSelectFields(),
   });
-  const blockingUser = await userRepo.findUnique({
+  const blockingUser = await userRepo.findOne({
     where: { id: blockingUserId },
-    select: getUserSelectFields(),
+    relations: ['blockings'],
   });
   if (userToBeBlocked && blockingUser) {
     const isUserAlreadyBlocked = blockingUser.blockings.find(
@@ -215,19 +170,8 @@ const blockUser = async (blockedUserId: string, blockingUserId: string) => {
     if (isUserAlreadyBlocked) {
       throw ApiError.BadRequest('You have already blocked this user');
     }
-    const updatedBlockingUser = await userRepo.update({
-      where: { id: blockingUserId },
-      data: {
-        blockings: {
-          set: [
-            ...blockingUser.blockings.map((b) => ({ id: b.id })),
-            { id: blockedUserId },
-          ],
-        },
-      },
-      select: getUserSelectFields(),
-    });
-    return updatedBlockingUser;
+    blockingUser.blockings.push(userToBeBlocked);
+    return userRepo.save(blockingUser);
   }
   throw ApiError.BadRequest('User not found');
 };
@@ -236,13 +180,12 @@ const unBlockUser = async (
   unBlockedUserId: string,
   unBlockingUserId: string
 ) => {
-  const userToBeUnBlocked = await userRepo.findUnique({
+  const userToBeUnBlocked = await userRepo.findOne({
     where: { id: unBlockedUserId },
-    select: getUserSelectFields(),
   });
-  const unBlockingUser = await userRepo.findUnique({
+  const unBlockingUser = await userRepo.findOne({
     where: { id: unBlockingUserId },
-    select: getUserSelectFields(),
+    relations: ['blockings'],
   });
   if (userToBeUnBlocked && unBlockingUser) {
     const isUserAlreadyUnBlocked = unBlockingUser.blockings.find(
@@ -251,97 +194,64 @@ const unBlockUser = async (
     if (!isUserAlreadyUnBlocked) {
       throw ApiError.BadRequest('You have not blocked this user');
     }
-    const updatedUnBlockingUser = await userRepo.update({
-      where: { id: unBlockingUserId },
-      data: {
-        blockings: {
-          set: unBlockingUser.blockings.filter(
-            (unBlocking) => unBlocking.id !== unBlockedUserId
-          ),
-        },
-      },
-      select: getUserSelectFields(),
-    });
-    return updatedUnBlockingUser;
+    unBlockingUser.blockings = unBlockingUser.blockings.filter(
+      (unBloking) => unBloking.id !== unBlockedUserId
+    );
+    return userRepo.save(unBlockingUser);
   }
   throw ApiError.BadRequest('User not found');
 };
 
 const adminBlockUser = async (userId: string) => {
-  const userToBeBlocked = await userRepo.findUnique({ where: { id: userId } });
+  const userToBeBlocked = await userRepo.findOne({
+    where: { id: userId },
+    relations: ['blockings'],
+  });
   if (!userToBeBlocked) {
     throw ApiError.BadRequest('User not found');
   }
   if (userToBeBlocked.isBlocked) {
     throw ApiError.BadRequest('User already blocked');
   }
-  return userRepo.update({
-    where: { id: userId },
-    data: {
-      isBlocked: true,
-    },
-    select: getUserSelectFields(),
-  });
+  userToBeBlocked.isBlocked = true;
+  return userRepo.save(userToBeBlocked);
 };
 
 const adminUnBlockUser = async (userId: string) => {
-  const userToBeUnBlocked = await userRepo.findUnique({ where: { id: userId } });
+  const userToBeUnBlocked = await userRepo.findOne({
+    where: { id: userId },
+    relations: ['blockings'],
+  });
   if (!userToBeUnBlocked) {
     throw ApiError.BadRequest('User not found');
   }
   if (!userToBeUnBlocked.isBlocked) {
     throw ApiError.BadRequest('User is not blocked');
   }
-  return userRepo.update({
-    where: { id: userId },
-    data: {
-      isBlocked: false,
-    },
-    select: getUserSelectFields(),
-  });
+  userToBeUnBlocked.isBlocked = false;
+  return userRepo.save(userToBeUnBlocked);
 };
 
-const updateUserInfo = async (userId: string, input: UpdateUserInput) => {
+const updateUserInfo = async (user: User, input: UpdateUserInput) => {
   if (input.email) {
-    const isEmailTaken = await userRepo.findUnique({
+    const isEmailTaken = await userRepo.findOne({
       where: { email: input.email },
     });
     if (isEmailTaken) {
       throw ApiError.BadRequest(`${input.email} is already taken`);
     }
   }
-  const dataToUpdate: UpdateUserInput = {};
-
-  if (input.firstname !== undefined) {
-    dataToUpdate.firstname = input.firstname;
+  if (input.profilPhoto) {
+    deleteFile(input.profilPhoto);
   }
-
-  if (input.lastname !== undefined) {
-    dataToUpdate.lastname = input.lastname;
-  }
-
-  if (input.email !== undefined) {
-    dataToUpdate.email = input.email;
-  }
-
-  if (input.profilPhoto !== undefined) {
-    dataToUpdate.profilPhoto = input.profilPhoto;
-  }
-  return userRepo.update({
-    where: { id: userId },
-    data: dataToUpdate,
-    select: getUserSelectFields(),
-  });
+  Object.assign(user, input);
+  return userRepo.save(user);
 };
 
 const changeUserPassword = async (
-  userId: string,
+  user: User,
   { oldPass, newPass, newPassConfirm }: UpdatePasswordInput
 ) => {
-  const user = await userRepo.findUnique({ where: { id: userId } });
-  if (!user) {
-    throw ApiError.BadRequest('User not Found');
-  }
   const isPassEquals = await bcrypt.compare(oldPass, user.password);
   if (!isPassEquals) {
     throw ApiError.BadRequest('Old password is incorrect');
@@ -352,47 +262,40 @@ const changeUserPassword = async (
     );
   }
   const hashPassword = await bcrypt.hash(newPass, 10);
-  return userRepo.update({
-    where: { id: userId },
-    data: {
-      password: hashPassword,
-      passwordChangedAt: new Date(),
-    },
-    select: getUserSelectFields(),
-  });
+  user.password = hashPassword;
+  user.passwordChangedAt = new Date();
+  return userRepo.save(user);
 };
 
 const forgotPassword = async (email: string) => {
-  const user = await userRepo.findUnique({ where: { email } });
+  const user = await userRepo.findOne({ where: { email } });
   if (!user) {
     throw ApiError.BadRequest('User not Found');
   }
-  const resetToken = await createPasswordResetToken(email);
+  const resetToken = await createPasswordResetToken(user);
   const resetUrl = `${config.get<string>(
     'apiUrl'
-  )}/users/resetPassword/${resetToken}`; */
+  )}/users/resetPassword/${resetToken}`;
 
-// Send resetUrl to user's email
-/* try {
+  // Send resetUrl to user's email
+  try {
     const subject = 'Your password reset token (valid for only 10 minutes)';
-    const link = `${config.get<string>('apiUrl')}/users/resetPassword/${resetUrl}`;
+    const link = `${config.get<string>(
+      'apiUrl'
+    )}/users/resetPassword/${resetUrl}`;
     const html = `<div>
             <h1>For reset password hit this link</h1>
             <a href="${link}">${link}</a>
             </div>`;
     sendMail(email, subject, html);
   } catch (e) {
-    userRepo.update({
-      where: { email },
-      data: {
-        passwordResetToken: null,
-        passwordResetExpires: null,
-      },
-    });
+    user.passwordResetToken = null;
+    user.passwordResetExpires = null;
+    await userRepo.save(user);
   }
 };
- */
-/* const resetPassword = async (
+
+const resetPassword = async (
   resetToken: string,
   { password }: ResetPasswordInput
 ) => {
@@ -400,45 +303,37 @@ const forgotPassword = async (email: string) => {
     .createHash('sha256')
     .update(resetToken)
     .digest('hex');
-  const user = await userRepo.findFirst({
+  const user = await userRepo.findOne({
     where: {
       passwordResetToken,
-      passwordResetExpires: {
-        gt: Date.now(),
-      },
+      passwordResetExpires: MoreThanOrEqual(new Date()),
     },
   });
   if (!user) {
     throw ApiError.BadRequest('Token is invalid or has expired');
   }
   const hashedPassword = await bcrypt.hash(password, 10);
-  await userRepo.update({
-    where: {
-      id: user.id,
-    },
-    data: {
-      password: hashedPassword,
-      passwordResetToken: null,
-      passwordResetExpires: null,
-      passwordChangedAt: new Date(),
-    },
-  });
+  user.password = hashedPassword;
+  user.passwordResetToken = null;
+  user.passwordResetExpires = null;
+  user.passwordChangedAt = new Date();
+  await userRepo.save(user);
   const tokens = tokenService.generateTokens({
-    id: user.id,
+    sub: user.id,
     email: user.email,
   });
   await tokenService.saveToken(user.id, tokens.refreshToken);
   return { ...tokens, user };
 };
 
-const deleteAccount = async (userId: string) => {
-  await userRepo.delete({ where: { id: userId } });
-}; */
+const deleteAccount = async (user: User) => {
+  await userRepo.remove(user);
+};
 
 export {
   findAll,
   findOne,
-  /*  profileViewers,
+  profileViewers,
   followUser,
   unFollowUser,
   blockUser,
@@ -449,6 +344,6 @@ export {
   changeUserPassword,
   forgotPassword,
   resetPassword,
-  deleteAccount, */
+  deleteAccount,
   create,
 };
