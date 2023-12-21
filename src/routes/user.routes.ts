@@ -20,7 +20,6 @@ import {
   updateUserInfoHandler,
   profileViewersHandler,
 } from '../controllers/user.controller';
-/* import { passport.authenticate('jwt', { session: false }), restrictTo } from '../middlewares/passport.authenticate('jwt', { session: false }).middleware'; */
 import { validate } from '../middlewares/validate';
 import passport from 'passport';
 /* import { uploadMiddleware } from '../middlewares/fileUploadMiddleware'; */
@@ -72,21 +71,21 @@ userRoutes.get(
 userRoutes.put(
   '/admin-block/:userId',
   passport.authenticate('jwt', { session: false }),
-  restrictTo('ADMIN'),
+  /* restrictTo('ADMIN'), */
   adminBlockUserHandler
 );
 
 userRoutes.put(
   '/admin-unblock/:userId',
   passport.authenticate('jwt', { session: false }),
-  restrictTo('ADMIN'),
+  /*  restrictTo('ADMIN') */
   adminUnBlockUserHandler
 );
 
 userRoutes.put(
   '/',
   passport.authenticate('jwt', { session: false }),
-  uploadMiddleware('profilePhoto'),
+  /* uploadMiddleware('profilePhoto'), */
   validate(updateUserSchema),
   updateUserInfoHandler
 );

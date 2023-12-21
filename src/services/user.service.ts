@@ -108,6 +108,7 @@ const profileViewers = async (userId: string) => {
 const followUser = async (followerId: string, followingId: string) => {
   const follower = await userRepo.findOne({
     where: { id: followerId },
+    relations: ['followers'],
   });
   const following = await userRepo.findOne({
     where: { id: followingId },
@@ -115,13 +116,13 @@ const followUser = async (followerId: string, followingId: string) => {
   });
   if (follower && following) {
     const isUserAlreadyFollowed = following.followings.find(
-      (following) => following.id === followerId
+      (followedUser) => followedUser.id === followerId
     );
     if (isUserAlreadyFollowed) {
       throw ApiError.BadRequest('You have already followed this user');
     }
     follower.followers.push(following);
-    following.followings.push(follower); // TRY ADDING ID OF THE USER
+    following.followings.push(follower);
     await userRepo.save(follower);
     return userRepo.save(following);
   }
@@ -131,6 +132,7 @@ const followUser = async (followerId: string, followingId: string) => {
 const unFollowUser = async (unfollowerId: string, unFollowingId: string) => {
   const unFollower = await userRepo.findOne({
     where: { id: unfollowerId },
+    relations: ['followers'],
   });
   const unFollowing = await userRepo.findOne({
     where: { id: unFollowingId },
@@ -146,7 +148,7 @@ const unFollowUser = async (unfollowerId: string, unFollowingId: string) => {
     unFollower.followers = unFollower.followers.filter(
       (follower) => follower.id !== unFollowingId
     );
-    unFollowing.followings = unFollowing.followers.filter(
+    unFollowing.followings = unFollowing.followings.filter(
       (unFollowing) => unFollowing.id !== unfollowerId
     );
     await userRepo.save(unFollower);

@@ -110,6 +110,8 @@ export class User extends Model {
   @Column({ type: 'enum', enum: AwardEnumType, default: AwardEnumType.BRONZE })
   userAward: string;
 
+  
+
   toJSON() {
     return {
       ...this,
