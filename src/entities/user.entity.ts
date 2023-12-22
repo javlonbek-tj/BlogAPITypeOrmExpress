@@ -85,6 +85,9 @@ export class User extends Model {
   })
   followers: User[];
 
+  @Column({ default: true })
+  canSeeFollowers: boolean;
+
   @ManyToMany(() => User, { cascade: true })
   @JoinTable({
     name: 'user_followings',
@@ -92,6 +95,9 @@ export class User extends Model {
     inverseJoinColumn: { name: 'followingId' },
   })
   followings: User[];
+
+  @Column({ default: true })
+  canSeeFollowings: boolean;
 
   @OneToMany(() => Post, post => post.user)
   posts: Post[];
@@ -111,14 +117,15 @@ export class User extends Model {
   userAward: string;
 
   toJSON() {
-    return {
-      ...this,
-      password: undefined,
-      activationCode: undefined,
-      activationCodeExpires: undefined,
-      passwordChangedAt: undefined,
-      passwordResetToken: undefined,
-      passwordResetExpires: undefined,
-    };
+    const {
+      password,
+      activationCode,
+      activationCodeExpires,
+      passwordChangedAt,
+      passwordResetToken,
+      passwordResetExpires,
+      ...rest
+    } = this;
+    return rest;
   }
 }

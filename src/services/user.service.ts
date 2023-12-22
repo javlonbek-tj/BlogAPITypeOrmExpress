@@ -95,8 +95,6 @@ const profileViewers = async (userId: string) => {
   return user;
 };
 
-import { classToPlain } from 'class-transformer';
-
 const followUser = async (followerId: string, followingId: string) => {
   const follower = await userRepo.findOne({
     where: { id: followerId },
@@ -116,23 +114,25 @@ const followUser = async (followerId: string, followingId: string) => {
     if (isUserAlreadyFollowed) {
       throw ApiError.BadRequest('You have already followed this user');
     }
-
-    // Exclude circular references manually before saving
-    const followerData = classToPlain(follower);
-    const followingData = classToPlain(following);
-
-    // Manually push to the arrays
-    followerData.followers.push({ id: following.id }); // Replace with the appropriate fields
-    followingData.followings.push({ id: follower.id }); // Replace with the appropriate fields
+    follower.followers.push(following);
+    following.followings.push(follower);
 
     // Save the entities
-    await userRepo.save(followerData);
-    await userRepo.save(followingData);
+    await userRepo.save(follower);
+    await userRepo.save(following);
 
-    return followingData;
+    return following;
   }
 
   throw ApiError.BadRequest('User not found');
+};
+
+const userFollowers = async (userId: string) => {
+  const user = await userRepo.findOne({ where: { id: userId }, relations: ['followers'] });
+  if (!user) {
+    throw ApiError.BadRequest('User not found');
+  }
+  return user;
 };
 
 const unFollowUser = async (unfollowerId: string, unFollowingId: string) => {
@@ -326,6 +326,7 @@ export {
   findOne,
   profileViewers,
   followUser,
+  userFollowers,
   unFollowUser,
   blockUser,
   unBlockUser,

@@ -2,27 +2,19 @@ import { NextFunction, Request, Response } from 'express';
 import 'dotenv/config';
 import * as authService from '../services/auth.service';
 
-export const register = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const register = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    await authService.signup(req.body);
+    const { accessToken } = await authService.signup(req.body);
     return res.status(201).json({
       status: 'success',
-      message: 'Code has been sent to your email!',
+      data: accessToken,
     });
   } catch (e) {
     next(e);
   }
 };
 
-export const reSendCode = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const reSendCode = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email } = req.body;
     await authService.reSendActivationCode(email);
@@ -35,11 +27,7 @@ export const reSendCode = async (
   }
 };
 
-export const activateUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const activateUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const tokens = await authService.activate(req.body.activationCode);
     res.cookie('jwt', tokens.refreshToken, authService.cookieOptions());
@@ -52,11 +40,7 @@ export const activateUser = async (
   }
 };
 
-export const login = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userData = await authService.signin(req.body);
     /* if (!userData.user.isActivated) {

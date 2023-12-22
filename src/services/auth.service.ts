@@ -20,7 +20,15 @@ const signup = async (dto: CreateUserInput) => {
     throw ApiError.BadRequest(`${dto.email} is already taken`);
   }
   const { user, randomSixDigitNumber } = await userService.create(dto);
-  try {
+  user.isActivated = true;
+  await userRepo.save(user);
+  const tokens = tokenService.generateTokens({
+    sub: user.id,
+    email: user.email,
+  });
+  await tokenService.saveToken(user.id, tokens.refreshToken);
+  return tokens;
+  /* try {
     sendActivationCode(user, randomSixDigitNumber);
   } catch (e) {
     await userRepo.remove(user);
@@ -28,16 +36,13 @@ const signup = async (dto: CreateUserInput) => {
       500,
       'There was an error sending the email. Try again later!'
     );
-  }
+  } */
 };
 
 const reSendActivationCode = async (user: User) => {
   const randomSixDigitNumber = Math.floor(Math.random() * 900000) + 100000;
   const numberAsString = randomSixDigitNumber.toString();
-  const hashedActivationCode = crypto
-    .createHash('sha256')
-    .update(numberAsString)
-    .digest('hex');
+  const hashedActivationCode = crypto.createHash('sha256').update(numberAsString).digest('hex');
   const activationCodeExpires: Date = new Date();
   activationCodeExpires.setMinutes(activationCodeExpires.getMinutes() + 1);
   user.activationCode = hashedActivationCode;
@@ -46,18 +51,12 @@ const reSendActivationCode = async (user: User) => {
   try {
     sendActivationCode(user, randomSixDigitNumber);
   } catch (e) {
-    throw new ApiError(
-      500,
-      'There was an error sending the email. Try again later!'
-    );
+    throw new ApiError(500, 'There was an error sending the email. Try again later!');
   }
 };
 
 const activate = async (activationCode: string) => {
-  const hashedActivationCode = crypto
-    .createHash('sha256')
-    .update(activationCode)
-    .digest('hex');
+  const hashedActivationCode = crypto.createHash('sha256').update(activationCode).digest('hex');
   const user = await userRepo.findOne({
     where: {
       activationCode: hashedActivationCode,
@@ -87,10 +86,7 @@ const signin = async (input: LoginUserInput) => {
     throw ApiError.BadRequest('Email or password incorrect');
   }
 
-  const isPassCorrect = await bcrypt.compare(
-    input.password,
-    existingUser.password
-  );
+  const isPassCorrect = await bcrypt.compare(input.password, existingUser.password);
   if (!isPassCorrect) {
     throw ApiError.BadRequest('Email or password incorrect');
   }
@@ -138,10 +134,7 @@ const cookieOptions = () => {
   return cookieOptions;
 };
 
-const changedPasswordAfter = (
-  JWTTimestamp: number,
-  passwordChangedAt: Date | null
-): boolean => {
+const changedPasswordAfter = (JWTTimestamp: number, passwordChangedAt: Date | null): boolean => {
   if (passwordChangedAt) {
     const changedTimestamp: number = passwordChangedAt.getTime() / 1000;
     return JWTTimestamp < changedTimestamp;

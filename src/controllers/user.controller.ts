@@ -3,11 +3,7 @@ import * as userService from '../services/user.service';
 import { GetUserInput, UpdateUserInput } from '../schemas/user.schema';
 import { User } from '../entities/user.entity';
 
-export const profileViewersHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const profileViewersHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.user as User;
     const user = await userService.profileViewers(id);
@@ -20,11 +16,7 @@ export const profileViewersHandler = async (
   }
 };
 
-export const getAllUsersHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const getAllUsersHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const users = await userService.findAll();
     res.status(200).json({
@@ -39,7 +31,7 @@ export const getAllUsersHandler = async (
 export const oneUserHandler = async (
   req: Request<GetUserInput>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const userId = req.params.userId;
@@ -56,7 +48,7 @@ export const oneUserHandler = async (
 export const followerUserHandler = async (
   req: Request<GetUserInput>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.user as User;
@@ -70,17 +62,30 @@ export const followerUserHandler = async (
   }
 };
 
+export const userFollowersHandler = async (
+  req: Request<GetUserInput>,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const userFollowers = await userService.userFollowers(req.params.userId);
+    res.status(200).json({
+      status: 'success',
+      data: userFollowers,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
 export const unFollowerUserHandler = async (
   req: Request<GetUserInput>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.user as User;
-    const unFollowingUser = await userService.unFollowUser(
-      req.params.userId,
-      id
-    );
+    const unFollowingUser = await userService.unFollowUser(req.params.userId, id);
     res.status(200).json({
       status: 'success',
       data: unFollowingUser,
@@ -93,7 +98,7 @@ export const unFollowerUserHandler = async (
 export const blockUserHandler = async (
   req: Request<GetUserInput>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.user as User;
@@ -110,7 +115,7 @@ export const blockUserHandler = async (
 export const unBlockUserHandler = async (
   req: Request<GetUserInput>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.user as User;
@@ -127,7 +132,7 @@ export const unBlockUserHandler = async (
 export const adminBlockUserHandler = async (
   req: Request<GetUserInput>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const blockedUser = await userService.adminBlockUser(req.params.userId);
@@ -143,7 +148,7 @@ export const adminBlockUserHandler = async (
 export const adminUnBlockUserHandler = async (
   req: Request<GetUserInput>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const unBlockedUser = await userService.adminUnBlockUser(req.params.userId);
@@ -159,7 +164,7 @@ export const adminUnBlockUserHandler = async (
 export const updateUserInfoHandler = async (
   req: Request<{}, {}, UpdateUserInput>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const profilPhoto = req.file?.path;
@@ -179,7 +184,7 @@ export const updateUserInfoHandler = async (
 export const changeUserPasswordHandler = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     await userService.changeUserPassword(req.user as User, req.body);
@@ -192,11 +197,7 @@ export const changeUserPasswordHandler = async (
   }
 };
 
-export const forgotPasswordHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const forgotPasswordHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email } = req.body;
     await userService.forgotPassword(email);
@@ -209,11 +210,7 @@ export const forgotPasswordHandler = async (
   }
 };
 
-export const resetPasswordHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const resetPasswordHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     await userService.resetPassword(req.params.resetToken, req.body);
     res.status(200).json({
@@ -225,11 +222,7 @@ export const resetPasswordHandler = async (
   }
 };
 
-export const deleteAccountHanlder = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const deleteAccountHanlder = async (req: Request, res: Response, next: NextFunction) => {
   try {
     await userService.deleteAccount(req.user as User);
     res.status(204).json({

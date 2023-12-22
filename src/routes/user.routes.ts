@@ -1,8 +1,4 @@
-import {
-  getUserSchema,
-  updatePasswordSchema,
-  updateUserSchema,
-} from './../schemas/user.schema';
+import { getUserSchema, updatePasswordSchema, updateUserSchema } from './../schemas/user.schema';
 import { Router } from 'express';
 import {
   adminBlockUserHandler,
@@ -19,6 +15,7 @@ import {
   unFollowerUserHandler,
   updateUserInfoHandler,
   profileViewersHandler,
+  userFollowersHandler,
 } from '../controllers/user.controller';
 import { validate } from '../middlewares/validate';
 import passport from 'passport';
@@ -26,60 +23,58 @@ import passport from 'passport';
 
 const userRoutes = Router();
 
-userRoutes.get(
-  '/',
-  passport.authenticate('jwt', { session: false }),
-  getAllUsersHandler
-);
+userRoutes.get('/', passport.authenticate('jwt', { session: false }), getAllUsersHandler);
 
 userRoutes.get(
   '/profile-viewers',
   passport.authenticate('jwt', { session: false }),
-  profileViewersHandler
+  profileViewersHandler,
 );
 
-userRoutes.get(
-  '/:userId',
-  passport.authenticate('jwt', { session: false }),
-  oneUserHandler
-);
+userRoutes.get('/:userId', passport.authenticate('jwt', { session: false }), oneUserHandler);
 
 userRoutes.get(
   '/following/:userId',
   passport.authenticate('jwt', { session: false }),
-  followerUserHandler
+  followerUserHandler,
+);
+
+userRoutes.get(
+  '/followers/:userId',
+  passport.authenticate('jwt', { session: false }),
+  userFollowersHandler,
 );
 
 userRoutes.get(
   '/unfollowing/:userId',
   passport.authenticate('jwt', { session: false }),
-  unFollowerUserHandler
+  unFollowerUserHandler,
 );
 
 userRoutes.get(
   '/blocking/:userId',
   passport.authenticate('jwt', { session: false }),
-  blockUserHandler
+  blockUserHandler,
 );
 
 userRoutes.get(
   '/unblocking/:userId',
   passport.authenticate('jwt', { session: false }),
-  unBlockUserHandler
+  unBlockUserHandler,
 );
 
 userRoutes.put(
   '/admin-block/:userId',
   passport.authenticate('jwt', { session: false }),
   /* restrictTo('ADMIN'), */
-  adminBlockUserHandler
+  adminBlockUserHandler,
 );
 
 userRoutes.put(
   '/admin-unblock/:userId',
   passport.authenticate('jwt', { session: false }),
   /*  restrictTo('ADMIN') */
-  adminUnBlockUserHandler
+  adminUnBlockUserHandler,
 );
 
 userRoutes.put(
@@ -87,32 +82,32 @@ userRoutes.put(
   passport.authenticate('jwt', { session: false }),
   /* uploadMiddleware('profilePhoto'), */
   validate(updateUserSchema),
-  updateUserInfoHandler
+  updateUserInfoHandler,
 );
 
 userRoutes.put(
   '/change-password',
   passport.authenticate('jwt', { session: false }),
   validate(updatePasswordSchema),
-  changeUserPasswordHandler
+  changeUserPasswordHandler,
 );
 
 userRoutes.post(
   '/forgot-password',
   passport.authenticate('jwt', { session: false }),
-  forgotPasswordHandler
+  forgotPasswordHandler,
 );
 
 userRoutes.put(
   '/reset-password/:resetToken',
   passport.authenticate('jwt', { session: false }),
-  resetPasswordHandler
+  resetPasswordHandler,
 );
 
 userRoutes.delete(
   '/delete-account',
   passport.authenticate('jwt', { session: false }),
-  deleteAccountHanlder
+  deleteAccountHanlder,
 );
 
 export default userRoutes;
