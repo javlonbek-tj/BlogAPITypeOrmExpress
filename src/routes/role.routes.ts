@@ -8,16 +8,14 @@ import {
   getRoleByValueHandler,
   updateRoleHandler,
 } from '../controllers/role.controller';
-/* import { isAuth, restrictTo } from '../middlewares/isAuth.middleware'; */
+import { isAuth } from '../middlewares/isAuth.middleware';
+import { restrictTo } from '../controllers/auth.controller';
 
 const roleRoutes = Router();
 
-/* roleRoutes.use(isAuth, restrictTo('ADMIN', 'EDITOR')); */
+roleRoutes.use(isAuth, restrictTo('ADMIN'));
 
-roleRoutes
-  .route('/')
-  .post(validate(createRoleSchema), createRoleHandler)
-  .get(allRolesHandler);
+roleRoutes.route('/').post(validate(createRoleSchema), createRoleHandler).get(allRolesHandler);
 
 roleRoutes
   .route('/:roleId')

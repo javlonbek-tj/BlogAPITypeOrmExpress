@@ -1,27 +1,27 @@
+import { AppDataSource } from '../data-source';
+import { Category } from '../entities/category.entity';
 import { CreateCategoryInput, UpdateCategoryInput } from '../schemas/category.schema';
 import ApiError from '../utils/appError';
-import db from '../utils/db';
+
+const categoryRepo = AppDataSource.getRepository(Category);
 
 const create = async ({ title }: CreateCategoryInput) => {
-  const categoryExists = await db.category.findUnique({ where: { title } });
+  const categoryExists = await categoryRepo.findOne({ where: { title } });
   if (categoryExists) {
     throw ApiError.BadRequest('Category already exists');
   }
-  const category = await db.category.create({
-    data: {
-      title,
-    },
-  });
+  const category = categoryRepo.create({ title });
+  await categoryRepo.save(category);
   return category;
 };
 
 const allCategories = async () => {
-  const categories = await db.category.findMany();
+  const categories = await categoryRepo.find();
   return categories;
 };
 
 const oneCategory = async (id: string) => {
-  const category = await db.category.findUnique({ where: { id } });
+  const category = await categoryRepo.findOne({ where: { id } });
   if (!category) {
     throw ApiError.BadRequest('Category not Found');
   }
@@ -29,28 +29,26 @@ const oneCategory = async (id: string) => {
 };
 
 const updateCategory = async (id: string, { title }: UpdateCategoryInput) => {
-  const category = await db.category.findUnique({ where: { id } });
+  const category = await categoryRepo.findOne({ where: { id } });
   if (!category) {
     throw ApiError.BadRequest('Category not Found');
   }
-  const categoryExists = await db.category.findUnique({ where: { title } });
+  const categoryExists = await categoryRepo.findOne({ where: { title } });
   if (categoryExists) {
     throw ApiError.BadRequest('Category already exists');
   }
-  return db.category.update({
-    where: { id },
-    data: {
-      title,
-    },
-  });
+  category.title = title;
+  await categoryRepo.save(category);
+  return category;
 };
 
 const deleteCategory = async (id: string) => {
-  const category = await db.category.findUnique({ where: { id } });
+  const category = await categoryRepo.findOne({ where: { id } });
   if (!category) {
     throw ApiError.BadRequest('Category not Found');
   }
-  return db.category.delete({ where: { id } });
+  await categoryRepo.remove(category);
+  return category;
 };
 
 export { create, allCategories, oneCategory, updateCategory, deleteCategory };

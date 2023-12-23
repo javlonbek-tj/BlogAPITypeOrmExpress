@@ -68,10 +68,28 @@ export const userFollowersHandler = async (
   next: NextFunction,
 ) => {
   try {
-    const userFollowers = await userService.userFollowers(req.params.userId);
+    const { id } = req.user as User;
+    const userFollowers = await userService.userFollowers(req.params.userId, id);
     res.status(200).json({
       status: 'success',
       data: userFollowers,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const userFollowingsHandler = async (
+  req: Request<GetUserInput>,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { id } = req.user as User;
+    const userFollowings = await userService.userFollowings(req.params.userId, id);
+    res.status(200).json({
+      status: 'success',
+      data: userFollowings,
     });
   } catch (e) {
     next(e);

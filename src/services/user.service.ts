@@ -9,6 +9,7 @@ import {
   UpdatePasswordInput,
   UpdateUserInput,
 } from '../schemas/user.schema';
+import { instanceToPlain } from 'class-transformer';
 import * as tokenService from './token.service';
 import { sendMail } from './mail.service';
 import { AppDataSource } from '../data-source';
@@ -59,27 +60,28 @@ const findAll = async () => {
 const findOne = async (userId: string, viewingUser: User) => {
   const userToBeViewed = await userRepo.findOne({
     where: { id: userId },
-    relations: ['posts', 'viewers', 'followers', 'followings'],
+    relations: ['viewers'],
   });
   if (userToBeViewed && viewingUser) {
-    if (userToBeViewed.posts.length <= 0) {
+    if (userToBeViewed.postIds.length <= 0) {
       userToBeViewed.userAward = 'bronze';
       await userRepo.save(userToBeViewed);
     }
-    if (userToBeViewed.posts.length > 10) {
+    if (userToBeViewed.postIds.length > 10) {
       userToBeViewed.userAward = 'silver';
       await userRepo.save(userToBeViewed);
     }
-    if (userToBeViewed.posts.length > 20) {
+    if (userToBeViewed.postIds.length > 20) {
       userToBeViewed.userAward = 'gold';
       await userRepo.save(userToBeViewed);
     }
-    const isUserAlreadyViewed = userToBeViewed.viewers.find(viewer => viewer.id === viewingUser.id);
+    const isUserAlreadyViewed = userToBeViewed.viewerIds.includes(viewingUser.id);
     if (isUserAlreadyViewed) {
       return userToBeViewed;
     }
     userToBeViewed.viewers.push(viewingUser);
-    return await userRepo.save(userToBeViewed);
+    await userRepo.save(userToBeViewed);
+    return userToBeViewed;
   }
   throw ApiError.BadRequest('User not found');
 };
@@ -96,6 +98,9 @@ const profileViewers = async (userId: string) => {
 };
 
 const followUser = async (followerId: string, followingId: string) => {
+  if (followerId === followingId) {
+    throw ApiError.BadRequest('You cannot follow yourself');
+  }
   const follower = await userRepo.findOne({
     where: { id: followerId },
     relations: ['followers'],
@@ -107,37 +112,42 @@ const followUser = async (followerId: string, followingId: string) => {
   });
 
   if (follower && following) {
-    const isUserAlreadyFollowed = following.followings.find(
-      followedUser => followedUser.id === followerId,
-    );
+    const isUserAlreadyFollowed = following.followingIds.includes(followerId);
 
     if (isUserAlreadyFollowed) {
       throw ApiError.BadRequest('You have already followed this user');
     }
-    follower.followers.push(following);
-    following.followings.push(follower);
+    const transformedFollower = instanceToPlain(follower);
+    const transformedFollowing = instanceToPlain(following);
+    transformedFollower.followers.push({ id: followingId });
+    transformedFollowing.followings.push({ id: followerId });
 
-    // Save the entities
-    await userRepo.save(follower);
-    await userRepo.save(following);
+    await userRepo.save(transformedFollower);
+    await userRepo.save(transformedFollowing);
 
-    return following;
+    return transformedFollowing;
   }
 
   throw ApiError.BadRequest('User not found');
 };
 
-const userFollowers = async (userId: string) => {
+const userFollowers = async (userId: string, currentUserId: string) => {
   const user = await userRepo.findOne({ where: { id: userId }, relations: ['followers'] });
   if (!user) {
     throw ApiError.BadRequest('User not found');
   }
-  return user;
+  if (userId === currentUserId || user.canSeeFollowers) {
+    return user;
+  }
+  throw ApiError.BadRequest("You can not see user's followers");
 };
 
-const unFollowUser = async (unfollowerId: string, unFollowingId: string) => {
+const unFollowUser = async (unFollowerId: string, unFollowingId: string) => {
+  if (unFollowerId === unFollowingId) {
+    throw ApiError.BadRequest('You cannot unFollow yourself');
+  }
   const unFollower = await userRepo.findOne({
-    where: { id: unfollowerId },
+    where: { id: unFollowerId },
     relations: ['followers'],
   });
   const unFollowing = await userRepo.findOne({
@@ -145,20 +155,29 @@ const unFollowUser = async (unfollowerId: string, unFollowingId: string) => {
     relations: ['followings'],
   });
   if (unFollower && unFollowing) {
-    const isUserAlreadyUnFollowed = unFollowing.followings.find(
-      unFollowing => unFollowing.id === unfollowerId,
-    );
+    const isUserAlreadyUnFollowed = unFollowing.followingIds.includes(unFollowerId);
     if (!isUserAlreadyUnFollowed) {
       throw ApiError.BadRequest('You have not followed this user');
     }
     unFollower.followers = unFollower.followers.filter(follower => follower.id !== unFollowingId);
     unFollowing.followings = unFollowing.followings.filter(
-      unFollowing => unFollowing.id !== unfollowerId,
+      unFollowing => unFollowing.id !== unFollowerId,
     );
     await userRepo.save(unFollower);
     return userRepo.save(unFollowing);
   }
   throw ApiError.BadRequest('User not found');
+};
+
+const userFollowings = async (userId: string, currentUserId: string) => {
+  const user = await userRepo.findOne({ where: { id: userId }, relations: ['followings'] });
+  if (!user) {
+    throw ApiError.BadRequest('User not found');
+  }
+  if (userId === currentUserId || user.canSeeFollowings) {
+    return user;
+  }
+  throw ApiError.BadRequest("You can not see user's followings");
 };
 
 const blockUser = async (blockedUserId: string, blockingUserId: string) => {
@@ -327,6 +346,7 @@ export {
   profileViewers,
   followUser,
   userFollowers,
+  userFollowings,
   unFollowUser,
   blockUser,
   unBlockUser,

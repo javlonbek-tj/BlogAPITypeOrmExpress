@@ -12,21 +12,17 @@ const options = {
   secretOrKey: 'secret',
 };
 
-const RTStrategy = new JwtStrategy(
-  options,
-  async (payload: tokenService.JwtPayload, done) => {
-    try {
-      const user = await userRepo.findOneBy({ id: payload.sub });
-
-      if (user && !changedPasswordAfter(payload.iat, user.passwordChangedAt)) {
-        return done(null, user);
-      } else {
-        return done(null, false);
-      }
-    } catch (err) {
-      return done(err, false);
+const RTStrategy = new JwtStrategy(options, async (payload: tokenService.JwtPayload, done) => {
+  try {
+    const user = await userRepo.findOneBy({ id: payload.sub });
+    if (user && !changedPasswordAfter(payload.iat, user.passwordChangedAt)) {
+      return done(null, user);
+    } else {
+      return done(null, false);
     }
+  } catch (err) {
+    return done(err, false);
   }
-);
+});
 
 export default RTStrategy;

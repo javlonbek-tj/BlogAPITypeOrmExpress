@@ -1,6 +1,9 @@
 import { NextFunction, Request, Response } from 'express';
 import 'dotenv/config';
 import * as authService from '../services/auth.service';
+import { Role } from '../entities/role.entity';
+import ApiError from '../utils/appError';
+import { User } from '../entities/user.entity';
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -60,14 +63,10 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
   }
 };
 
-/* export const refresh = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const refresh = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { jwt } = req.cookies;
-    const tokens = await authService.refresh(jwt);
+    const tokens = await authService.refresh(jwt, req.user as User);
     res.cookie('jwt', tokens.refreshToken, authService.cookieOptions());
     return res.status(200).json({
       status: 'success',
@@ -78,11 +77,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
   }
 };
 
-export const logout = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const logout = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { jwt } = req.cookies;
     await authService.signout(jwt);
@@ -94,4 +89,14 @@ export const logout = async (
   } catch (e) {
     next(e);
   }
-}; */
+};
+
+export function restrictTo(...roles: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user as User & { role?: Role };
+    if (!user || !user.role || !roles.includes(user.role.value)) {
+      return next(ApiError.UnauthorizedError());
+    }
+    next();
+  };
+}

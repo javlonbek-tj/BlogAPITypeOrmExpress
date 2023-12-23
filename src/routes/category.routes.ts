@@ -1,9 +1,6 @@
 import { Router } from 'express';
 import { validate } from '../middlewares/validate';
-import {
-  createCategorySchema,
-  updateCategorySchema,
-} from '../schemas/category.schema';
+import { createCategorySchema, updateCategorySchema } from '../schemas/category.schema';
 import {
   allCategoriesHandler,
   createCategoryHandler,
@@ -11,21 +8,25 @@ import {
   oneCategoryHandler,
   updateCategoryHandler,
 } from '../controllers/category.controller';
-/* import { isAuth, restrictTo } from '../middlewares/isAuth.middleware'; */
+import { isAuth } from '../middlewares/isAuth.middleware';
+import { restrictTo } from '../controllers/auth.controller';
 
 const categoryRoutes = Router();
 
-/* categoryRoutes.use(isAuth, restrictTo('ADMIN', 'EDITOR')); */
+categoryRoutes.use(isAuth);
 
-categoryRoutes
-  .route('/')
-  .post(validate(createCategorySchema), createCategoryHandler)
-  .get(allCategoriesHandler);
+categoryRoutes.post(
+  '/',
+  restrictTo('ADMIN'),
+  validate(createCategorySchema),
+  createCategoryHandler,
+);
+categoryRoutes.get('/', allCategoriesHandler);
 
 categoryRoutes
   .route('/:categoryId')
   .get(oneCategoryHandler)
-  .put(validate(updateCategorySchema), updateCategoryHandler)
-  .delete(deleteCategoryHandler);
+  .put(restrictTo('ADMIN', 'EDITOR'), validate(updateCategorySchema), updateCategoryHandler)
+  .delete(restrictTo('ADMIN'), deleteCategoryHandler);
 
 export default categoryRoutes;

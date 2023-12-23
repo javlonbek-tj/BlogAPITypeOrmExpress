@@ -29,8 +29,7 @@ export const updateCategorySchema = z.object({
         invalid_type_error: 'Title must be a string',
       })
       .trim()
-      .min(1, { message: "Description can't be empty" })
-      .optional(),
+      .min(1, { message: "Description can't be empty" }),
   }),
 });
 

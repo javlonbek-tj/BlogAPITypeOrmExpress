@@ -1,64 +1,53 @@
+import { AppDataSource } from '../data-source';
+import { Comment } from '../entities/comment.entity';
+import { User } from '../entities/user.entity';
 import { CreateCommentInput, UpdateCommentInput } from '../schemas/comment.schema';
 import ApiError from '../utils/appError';
-import db from '../utils/db';
-import { getUserSelectFields } from '../utils/getSelectedField';
+import { postRepo } from './post.service';
 
-const create = async (userId: string, { description, postId }: CreateCommentInput) => {
-  const post = await db.post.findUnique({
-    where: { id: postId },
-    select: {
-      author: {
-        select: {
-          blockings: true,
-        },
-      },
-    },
-  });
+const commentRepo = AppDataSource.getRepository(Comment);
+
+const create = async (user: User, { description, postId }: CreateCommentInput) => {
+  const post = await postRepo.findOne({ where: { id: postId }, relations: ['blockings'] });
   if (!post) {
     throw ApiError.BadRequest('Post not Found');
   }
   // Check if the author of the post blocked current user
-  const blockings = post.author.blockings.map(blocking => blocking.id);
-  const isBlocked = blockings.includes(userId);
+  const isBlocked = post.user.blockingIds.includes(user.id);
   if (isBlocked) {
-    throw new ApiError(403, `You can not leave a comment to this post. You are blocked by the author of the post.`);
+    throw new ApiError(
+      403,
+      `You can not leave a comment to this post. You are blocked by the author of the post.`,
+    );
   }
-  const comment = await db.comment.create({
-    data: {
-      description,
-      postId,
-      userId,
-    },
-    include: {
-      post: true,
-      user: {
-        select: getUserSelectFields(),
-      },
-    },
-  });
+  const comment = commentRepo.create({ description });
+  comment.user = user;
+  comment.post = post;
+  await commentRepo.save(comment);
   return comment;
 };
 
-const allComments = (postId: string) => {
-  return db.comment.findMany({
-    where: { postId: postId },
-    include: {
-      user: {
-        select: getUserSelectFields(),
-      },
-    },
+const allComments = async (postId: string) => {
+  const comments = await commentRepo.find({
+    where: { post: { id: postId } },
+    relations: ['user'],
   });
+  return comments;
 };
 
-const updateComment = async (userId: string, commentId: string, { description }: UpdateCommentInput) => {
-  const comment = await db.comment.findUnique({ where: { id: commentId } });
+const updateComment = async (
+  userId: string,
+  commentId: string,
+  { description }: UpdateCommentInput,
+) => {
+  const comment = await commentRepo.findUnique({ where: { id: commentId } });
   if (!comment) {
     throw ApiError.BadRequest('Comment not Found');
   }
   if (userId !== comment.userId) {
     throw ApiError.UnauthorizedError();
   }
-  return await db.comment.update({
+  return await commentRepo.update({
     where: { id: commentId },
     data: {
       description,
@@ -72,14 +61,14 @@ const updateComment = async (userId: string, commentId: string, { description }:
 };
 
 const deleteComment = async (userId: string, commentId: string) => {
-  const comment = await db.comment.findUnique({ where: { id: commentId } });
+  const comment = await commentRepo.findUnique({ where: { id: commentId } });
   if (!comment) {
     throw ApiError.BadRequest('Comment not Found');
   }
   if (userId !== comment.userId) {
     throw ApiError.UnauthorizedError();
   }
-  await db.comment.delete({ where: { id: commentId } });
+  await commentRepo.delete({ where: { id: commentId } });
 };
 
 export { create, allComments, deleteComment, updateComment };

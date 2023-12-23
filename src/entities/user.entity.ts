@@ -116,6 +116,25 @@ export class User extends Model {
   @Column({ type: 'enum', enum: AwardEnumType, default: AwardEnumType.BRONZE })
   userAward: string;
 
+  get postIds(): string[] {
+    return this.posts ? this.posts.map(post => post.id) : [];
+  }
+
+  get viewerIds(): string[] {
+    return this.viewers ? this.viewers.map(viewer => viewer.id) : [];
+  }
+
+  get followerIds(): string[] {
+    return this.followers ? this.followers.map(follower => follower.id) : [];
+  }
+
+  get followingIds(): string[] {
+    return this.followings ? this.followings.map(following => following.id) : [];
+  }
+  get blockingIds(): string[] {
+    return this.blockings ? this.blockings.map(blocking => blocking.id) : [];
+  }
+
   toJSON() {
     const {
       password,

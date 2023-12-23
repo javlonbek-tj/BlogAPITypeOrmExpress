@@ -30,8 +30,7 @@ export const updateCommentSchema = z.object({
         invalid_type_error: 'Description must be a string',
       })
       .trim()
-      .min(1, { message: "Description can't be empty" })
-      .optional(),
+      .min(1, { message: "Description can't be empty" }),
   }),
 });
 

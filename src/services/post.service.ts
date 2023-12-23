@@ -1,10 +1,22 @@
+import { AppDataSource } from '../data-source';
+import { Post } from '../entities/post.entity';
 import { CreatePostInput, UpdatePostInput } from '../schemas/post.schema';
 import ApiError from '../utils/appError';
 import db from '../utils/db';
 import { deleteFile } from '../utils/deleteFile';
-import { getLikesDislikesInclude, getPostInclude, getUserSelectFields } from '../utils/getSelectedField';
+import {
+  getLikesDislikesInclude,
+  getPostInclude,
+  getUserSelectFields,
+} from '../utils/getSelectedField';
 
-const create = async (authorId: string, photo: string, { title, description, categories }: CreatePostInput) => {
+export const postRepo = AppDataSource.getRepository(Post);
+
+const create = async (
+  authorId: string,
+  photo: string,
+  { title, description, categories }: CreatePostInput,
+) => {
   const user = await db.user.findUnique({ where: { id: authorId } });
   if (user?.isBlocked) {
     throw new ApiError(403, 'Your account is blocked');
