@@ -5,8 +5,47 @@ import { User } from '../entities/user.entity';
 
 export const profileViewersHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.user as User;
-    const user = await userService.profileViewers(id);
+    const currentUser = req.user as User;
+    const user = await userService.profileViewers(currentUser.id);
+    res.status(200).json({
+      status: 'success',
+      data: user,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const myLikedUsersHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const currentUser = req.user as User;
+    const user = await userService.myLikesPosts(currentUser.id);
+    res.status(200).json({
+      status: 'success',
+      data: user,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const myDislikedUsersHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const currentUser = req.user as User;
+    const user = await userService.myDisLikedPosts(currentUser.id);
+    res.status(200).json({
+      status: 'success',
+      data: user,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const myBlokingUsersHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const currentUser = req.user as User;
+    const user = await userService.myBlokingUsers(currentUser.id);
     res.status(200).json({
       status: 'success',
       data: user,
@@ -51,8 +90,8 @@ export const followerUserHandler = async (
   next: NextFunction,
 ) => {
   try {
-    const { id } = req.user as User;
-    const followingUser = await userService.followUser(req.params.userId, id);
+    const currentUser = req.user as User;
+    const followingUser = await userService.followUser(req.params.userId, currentUser.id);
     res.status(200).json({
       status: 'success',
       data: followingUser,
@@ -68,8 +107,8 @@ export const userFollowersHandler = async (
   next: NextFunction,
 ) => {
   try {
-    const { id } = req.user as User;
-    const userFollowers = await userService.userFollowers(req.params.userId, id);
+    const currentUser = req.user as User;
+    const userFollowers = await userService.userFollowers(req.params.userId, currentUser.id);
     res.status(200).json({
       status: 'success',
       data: userFollowers,
@@ -85,8 +124,8 @@ export const userFollowingsHandler = async (
   next: NextFunction,
 ) => {
   try {
-    const { id } = req.user as User;
-    const userFollowings = await userService.userFollowings(req.params.userId, id);
+    const currentUser = req.user as User;
+    const userFollowings = await userService.userFollowings(req.params.userId, currentUser.id);
     res.status(200).json({
       status: 'success',
       data: userFollowings,
@@ -102,8 +141,8 @@ export const unFollowerUserHandler = async (
   next: NextFunction,
 ) => {
   try {
-    const { id } = req.user as User;
-    const unFollowingUser = await userService.unFollowUser(req.params.userId, id);
+    const currentUser = req.user as User;
+    const unFollowingUser = await userService.unFollowUser(req.params.userId, currentUser.id);
     res.status(200).json({
       status: 'success',
       data: unFollowingUser,
@@ -119,8 +158,8 @@ export const blockUserHandler = async (
   next: NextFunction,
 ) => {
   try {
-    const { id } = req.user as User;
-    const blockingUser = await userService.blockUser(req.params.userId, id);
+    const currentUser = req.user as User;
+    const blockingUser = await userService.blockUser(req.params.userId, currentUser.id);
     res.status(200).json({
       status: 'success',
       data: blockingUser,
@@ -136,8 +175,8 @@ export const unBlockUserHandler = async (
   next: NextFunction,
 ) => {
   try {
-    const { id } = req.user as User;
-    const unBlockingUser = await userService.unBlockUser(req.params.userId, id);
+    const currentUser = req.user as User;
+    const unBlockingUser = await userService.unBlockUser(req.params.userId, currentUser.id);
     res.status(200).json({
       status: 'success',
       data: unBlockingUser,

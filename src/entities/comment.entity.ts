@@ -12,6 +12,12 @@ export class Comment extends Model {
   @JoinColumn({ name: 'postId' })
   post: Post;
 
+  @Column()
+  userId: string;
+
+  @Column()
+  postId: string;
+
   @ManyToOne(() => User, user => user.comments)
   @JoinColumn({ name: 'userId' })
   user: User;

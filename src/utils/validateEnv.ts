@@ -1,14 +1,21 @@
-import { cleanEnv, port, str } from 'envalid';
+import { cleanEnv, port, str, url, email, host } from 'envalid';
 
 const validateEnv = () => {
   cleanEnv(process.env, {
     PORT: port(),
-    DATABASE_URL: str(),
-    CLIENT_URL: str(),
-    JWT_ACCESS_SECRET: str(),
-    JWT_REFRESH_SECRET: str(),
-    ACCESS_TOKEN_EXPIRES_IN: str(),
-    REFRESH_TOKEN_EXPIRES_IN: str(),
+    CLIENT_URL: url(),
+    API_URL: url(),
+    AT_SECRET: str(),
+    RT_SECRET: str(),
+    AT_EXPIRATION_DATE: str(),
+    RT_EXPIRATION_DATE: str(),
+    NODEMAILER_USER: email(),
+    NODEMAILER_PASS: str(),
+    POSTGRES_HOST: host(),
+    POSTGRES_PORT: port(),
+    POSTGRES_USER: str(),
+    POSTGRES_PASSWORD: str(),
+    POSTGRES_DB: str(),
   });
 };
 

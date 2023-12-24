@@ -7,10 +7,10 @@ import { User } from '../entities/user.entity';
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { accessToken } = await authService.signup(req.body);
+    await authService.signup(req.body);
     return res.status(201).json({
       status: 'success',
-      data: accessToken,
+      data: 'Code has been sent to your email.',
     });
   } catch (e) {
     next(e);
@@ -46,13 +46,13 @@ export const activateUser = async (req: Request, res: Response, next: NextFuncti
 export const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userData = await authService.signin(req.body);
-    /* if (!userData.user.isActivated) {
-      await authService.reSendActivationCode(userData.user.email);
+    if (!userData.user.isActivated) {
+      await authService.reSendActivationCode(userData.user);
       return res.status(200).json({
         status: 'success',
         message: 'Code has been resent to your email!',
       });
-    } */
+    }
     res.cookie('jwt', userData.refreshToken, authService.cookieOptions());
     return res.status(200).json({
       status: 'success',

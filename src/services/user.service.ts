@@ -18,7 +18,7 @@ import * as roleService from './role.service';
 import { deleteFile } from '../utils/files';
 import { MoreThanOrEqual } from 'typeorm';
 
-const userRepo = AppDataSource.getRepository(User);
+export const userRepo = AppDataSource.getRepository(User);
 
 const createPasswordResetToken = async (user: User) => {
   const resetToken = crypto.randomBytes(32).toString('hex');
@@ -76,11 +76,10 @@ const findOne = async (userId: string, viewingUser: User) => {
       await userRepo.save(userToBeViewed);
     }
     const isUserAlreadyViewed = userToBeViewed.viewerIds.includes(viewingUser.id);
-    if (isUserAlreadyViewed) {
-      return userToBeViewed;
+    if (!isUserAlreadyViewed) {
+      userToBeViewed.viewers.push(viewingUser);
+      await userRepo.save(userToBeViewed);
     }
-    userToBeViewed.viewers.push(viewingUser);
-    await userRepo.save(userToBeViewed);
     return userToBeViewed;
   }
   throw ApiError.BadRequest('User not found');
@@ -90,6 +89,39 @@ const profileViewers = async (userId: string) => {
   const user = await userRepo.findOne({
     where: { id: userId },
     relations: ['viewers'],
+  });
+  if (!user) {
+    throw ApiError.BadRequest('User not found');
+  }
+  return user;
+};
+
+const myLikesPosts = async (userId: string) => {
+  const user = await userRepo.findOne({
+    where: { id: userId },
+    relations: ['likedPosts'],
+  });
+  if (!user) {
+    throw ApiError.BadRequest('User not found');
+  }
+  return user;
+};
+
+const myDisLikedPosts = async (userId: string) => {
+  const user = await userRepo.findOne({
+    where: { id: userId },
+    relations: ['disLikedPosts'],
+  });
+  if (!user) {
+    throw ApiError.BadRequest('User not found');
+  }
+  return user;
+};
+
+const myBlokingUsers = async (userId: string) => {
+  const user = await userRepo.findOne({
+    where: { id: userId },
+    relations: ['blockings'],
   });
   if (!user) {
     throw ApiError.BadRequest('User not found');
@@ -164,7 +196,8 @@ const unFollowUser = async (unFollowerId: string, unFollowingId: string) => {
       unFollowing => unFollowing.id !== unFollowerId,
     );
     await userRepo.save(unFollower);
-    return userRepo.save(unFollowing);
+    await userRepo.save(unFollowing);
+    return unFollowing;
   }
   throw ApiError.BadRequest('User not found');
 };
@@ -344,6 +377,9 @@ export {
   findAll,
   findOne,
   profileViewers,
+  myLikesPosts,
+  myDisLikedPosts,
+  myBlokingUsers,
   followUser,
   userFollowers,
   userFollowings,

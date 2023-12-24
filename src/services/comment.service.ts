@@ -29,7 +29,7 @@ const create = async (user: User, { description, postId }: CreateCommentInput) =
 
 const allComments = async (postId: string) => {
   const comments = await commentRepo.find({
-    where: { post: { id: postId } },
+    where: { postId },
     relations: ['user'],
   });
   return comments;
@@ -40,35 +40,26 @@ const updateComment = async (
   commentId: string,
   { description }: UpdateCommentInput,
 ) => {
-  const comment = await commentRepo.findUnique({ where: { id: commentId } });
+  const comment = await commentRepo.findOne({ where: { id: commentId } });
   if (!comment) {
     throw ApiError.BadRequest('Comment not Found');
   }
   if (userId !== comment.userId) {
     throw ApiError.UnauthorizedError();
   }
-  return await commentRepo.update({
-    where: { id: commentId },
-    data: {
-      description,
-    },
-    include: {
-      user: {
-        select: getUserSelectFields(),
-      },
-    },
-  });
+  comment.description = description;
+  await commentRepo.save(comment);
 };
 
-const deleteComment = async (userId: string, commentId: string) => {
-  const comment = await commentRepo.findUnique({ where: { id: commentId } });
+const deleteComment = async (user: User, commentId: string) => {
+  const comment = await commentRepo.findOne({ where: { id: commentId } });
   if (!comment) {
     throw ApiError.BadRequest('Comment not Found');
   }
-  if (userId !== comment.userId) {
+  if (user.id !== comment.userId || user.role.value !== 'ADMIN') {
     throw ApiError.UnauthorizedError();
   }
-  await commentRepo.delete({ where: { id: commentId } });
+  await commentRepo.remove(comment);
 };
 
 export { create, allComments, deleteComment, updateComment };

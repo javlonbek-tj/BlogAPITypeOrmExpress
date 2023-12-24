@@ -3,7 +3,7 @@ import { Category } from '../entities/category.entity';
 import { CreateCategoryInput, UpdateCategoryInput } from '../schemas/category.schema';
 import ApiError from '../utils/appError';
 
-const categoryRepo = AppDataSource.getRepository(Category);
+export const categoryRepo = AppDataSource.getRepository(Category);
 
 const create = async ({ title }: CreateCategoryInput) => {
   const categoryExists = await categoryRepo.findOne({ where: { title } });

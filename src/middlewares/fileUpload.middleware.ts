@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import upload from '../utils/fileUpload';
+import { upload } from '../utils/files';
 
 export const uploadMiddleware =
   (fieldName: string) => (req: Request, res: Response, next: NextFunction) => {

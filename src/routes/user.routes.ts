@@ -17,17 +17,26 @@ import {
   profileViewersHandler,
   userFollowersHandler,
   userFollowingsHandler,
+  myLikedUsersHandler,
+  myDislikedUsersHandler,
+  myBlokingUsersHandler,
 } from '../controllers/user.controller';
 import { validate } from '../middlewares/validate';
 import { isAuth } from '../middlewares/isAuth.middleware';
 import { restrictTo } from '../controllers/auth.controller';
-/* import { uploadMiddleware } from '../middlewares/fileUploadMiddleware'; */
+import { uploadMiddleware } from '../middlewares/fileUpload.middleware';
 
 const userRoutes = Router();
 
-userRoutes.get('/', isAuth, getAllUsersHandler);
+userRoutes.get('/', isAuth, restrictTo('ADMIN'), getAllUsersHandler);
 
 userRoutes.get('/profile-viewers', isAuth, profileViewersHandler);
+
+userRoutes.get('/liked-posts', isAuth, myLikedUsersHandler);
+
+userRoutes.get('/disliked-posts', isAuth, myDislikedUsersHandler);
+
+userRoutes.get('/blocking-users', isAuth, myBlokingUsersHandler);
 
 userRoutes.get('/:userId', isAuth, oneUserHandler);
 
@@ -50,7 +59,7 @@ userRoutes.put('/admin-unblock/:userId', isAuth, restrictTo('ADMIN'), adminUnBlo
 userRoutes.put(
   '/',
   isAuth,
-  /* uploadMiddleware('profilePhoto'), */
+  uploadMiddleware('profilePhoto'),
   validate(updateUserSchema),
   updateUserInfoHandler,
 );

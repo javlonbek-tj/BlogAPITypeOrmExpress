@@ -16,7 +16,7 @@ export const createPostSchema = z.object({
       })
       .trim()
       .min(1, { message: "Description can't be empty" }),
-    categories: z.array(z.string()),
+    categoryIds: z.array(z.string()),
   }),
 });
 
@@ -46,7 +46,7 @@ export const updatePostSchema = z.object({
       .trim()
       .min(1, { message: "Description can't be empty" })
       .optional(),
-    categories: z.array(z.string()).optional(),
+    categoryIds: z.array(z.string()).optional(),
     photo: z.string().optional(),
   }),
 });

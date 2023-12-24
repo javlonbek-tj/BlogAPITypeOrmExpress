@@ -20,23 +20,13 @@ const signup = async (dto: CreateUserInput) => {
     throw ApiError.BadRequest(`${dto.email} is already taken`);
   }
   const { user, randomSixDigitNumber } = await userService.create(dto);
-  user.isActivated = true;
   await userRepo.save(user);
-  const tokens = tokenService.generateTokens({
-    sub: user.id,
-    email: user.email,
-  });
-  await tokenService.saveToken(user.id, tokens.refreshToken);
-  return tokens;
-  /* try {
+  try {
     sendActivationCode(user, randomSixDigitNumber);
   } catch (e) {
     await userRepo.remove(user);
-    throw new ApiError(
-      500,
-      'There was an error sending the email. Try again later!'
-    );
-  } */
+    throw new ApiError(500, 'There was an error sending the email. Try again later!');
+  }
 };
 
 const reSendActivationCode = async (user: User) => {
@@ -47,7 +37,7 @@ const reSendActivationCode = async (user: User) => {
   activationCodeExpires.setMinutes(activationCodeExpires.getMinutes() + 1);
   user.activationCode = hashedActivationCode;
   user.activationCodeExpires = activationCodeExpires;
-
+  await userRepo.save(user);
   try {
     sendActivationCode(user, randomSixDigitNumber);
   } catch (e) {
@@ -75,7 +65,7 @@ const activate = async (activationCode: string) => {
     email: user.email,
   });
   await tokenService.saveToken(user.id, tokens.refreshToken);
-  return tokens;
+  return { ...tokens, user };
 };
 
 const signin = async (input: LoginUserInput) => {
@@ -85,7 +75,6 @@ const signin = async (input: LoginUserInput) => {
   if (!existingUser) {
     throw ApiError.BadRequest('Email or password incorrect');
   }
-
   const isPassCorrect = await bcrypt.compare(input.password, existingUser.password);
   if (!isPassCorrect) {
     throw ApiError.BadRequest('Email or password incorrect');

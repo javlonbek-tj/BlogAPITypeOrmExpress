@@ -58,8 +58,8 @@ export class User extends Model {
   @Column({ type: 'timestamptz', nullable: true })
   passwordResetExpires: Date | null;
 
-  @Column({ type: 'varchar', nullable: true })
-  lastPostDate: string | null;
+  @Column({ type: 'timestamptz', nullable: true })
+  lastPostDate: Date | null;
 
   @ManyToOne(() => Role, role => role.users)
   @JoinColumn({ name: 'roleId' })
@@ -71,7 +71,7 @@ export class User extends Model {
 
   @ManyToMany(() => User, { cascade: true })
   @JoinTable({
-    name: 'user_viewer',
+    name: 'user_viewers',
     joinColumn: { name: 'userId' },
     inverseJoinColumn: { name: 'viewerId' },
   })
@@ -101,6 +101,30 @@ export class User extends Model {
 
   @OneToMany(() => Post, post => post.user)
   posts: Post[];
+
+  @ManyToMany(() => Post, post => post.likedByUsers)
+  @JoinTable({
+    name: 'user_likes',
+    joinColumn: { name: 'userId' },
+    inverseJoinColumn: { name: 'postId' },
+  })
+  likedPosts: Post[];
+
+  @ManyToMany(() => Post, post => post.disLikedByUsers)
+  @JoinTable({
+    name: 'user_dislikes',
+    joinColumn: { name: 'userId' },
+    inverseJoinColumn: { name: 'postId' },
+  })
+  disLikedPosts: Post[];
+
+  @ManyToMany(() => Post, post => post.viewedByUsers)
+  @JoinTable({
+    name: 'user_viewedPosts',
+    joinColumn: { name: 'userId' },
+    inverseJoinColumn: { name: 'postId' },
+  })
+  viewedPosts: Post[];
 
   @OneToMany(() => Comment, comment => comment.user)
   comments: Comment[];
@@ -134,6 +158,16 @@ export class User extends Model {
   get blockingIds(): string[] {
     return this.blockings ? this.blockings.map(blocking => blocking.id) : [];
   }
+  get likedPostIds(): string[] {
+    return this.likedPosts ? this.likedPosts.map(post => post.id) : [];
+  }
+  get dislikedPostIds(): string[] {
+    return this.disLikedPosts ? this.disLikedPosts.map(post => post.id) : [];
+  }
+
+  get viewedPostIds(): string[] {
+    return this.viewedPosts ? this.viewedPosts.map(post => post.id) : [];
+  }
 
   toJSON() {
     const {
@@ -145,6 +179,17 @@ export class User extends Model {
       passwordResetExpires,
       ...rest
     } = this;
-    return rest;
+
+    return {
+      ...rest,
+      postIds: this.postIds,
+      viewerIds: this.viewerIds,
+      followerIds: this.followerIds,
+      followingIds: this.followingIds,
+      blockingIds: this.blockingIds,
+      likedPostIds: this.likedPostIds,
+      dislikedPostIds: this.dislikedPostIds,
+      viewedPostIds: this.viewedPostIds,
+    };
   }
 }

@@ -19,7 +19,7 @@ const port: number = config.get<number>('port');
 
 async function start(): Promise<void> {
   try {
-    /* validateEnv(); */
+    validateEnv();
     await connectDB();
     const app: Express = express();
 
@@ -41,7 +41,7 @@ async function start(): Promise<void> {
       cors({
         credentials: true,
         origin: config.get<string>('clientUrl'),
-      })
+      }),
     );
 
     app.use('/api/v1', api);
